@@ -17,6 +17,13 @@ test('Seguridad: valida que touch_boost.sh esté 100% libre de propiedades no pe
   assert.equal(result.isValid, true);
 });
 
+test('Seguridad: valida que surface_tweak.sh (Modo Batata Android 12+) esté 100% libre de propiedades no permitidas', () => {
+  const surfaceScript = MODULE_SCRIPTS.find(s => s.name === 'surface_tweak.sh');
+  assert.ok(surfaceScript, 'surface_tweak.sh debe existir');
+  const result = validateScriptSecurity(surfaceScript.codeSnippet);
+  assert.equal(result.isValid, true);
+});
+
 test('Arquitectura: clasifica correctamente 32-bit y 64-bit', () => {
   assert.equal(classifyAbi('arm64-v8a'), '64-bit');
   assert.equal(classifyAbi('armeabi-v7a'), '32-bit');

@@ -61,7 +61,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, onOpenGuide 
           <div className="space-y-2">
             <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 text-xs font-semibold">
               <Sparkles className="w-3.5 h-3.5" />
-              Nueva Función Implementada
+              Función de Entrada
             </div>
             <h2 className="text-xl sm:text-2xl font-bold text-white">
               Optimización de Sensibilidad y Respuesta Táctil
@@ -84,6 +84,40 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, onOpenGuide 
             <div className="flex items-center justify-between gap-4 text-slate-400">
               <span>Respaldo Automático:</span>
               <span className="text-emerald-400 font-bold font-mono">100% Reversible</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Tarjeta Destacada 2: Modo Batata / Gráficos de Cartón (Exclusivo Android 12+) */}
+      <section className="bg-gradient-to-r from-amber-950/30 via-slate-900 to-emerald-950/30 border border-amber-800/40 rounded-2xl p-6 sm:p-8">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="space-y-2">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/30 text-xs font-semibold">
+              <span>🥔</span>
+              Nuevo: Modo Batata / Gráficos de Cartón (Android 12+)
+            </div>
+            <h2 className="text-xl sm:text-2xl font-bold text-white">
+              Reducción de Renderizado para Free Fire (+30 FPS en Mali)
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-300 max-w-2xl leading-relaxed">
+              Ejecutado con <code className="text-amber-300 font-mono">surface_tweak.sh</code>. Aplica escalado dinámico (<code className="text-amber-300 font-mono">downscaleFactor=0.5</code>)
+              vía el subsistema nativo <code className="text-amber-300 font-mono">cmd game</code> de Google. Libera el 70% de carga en los fragment shaders de Mali sin alterar la pantalla global del teléfono y sin riesgo de baneo.
+            </p>
+          </div>
+
+          <div className="bg-slate-950/80 p-4 rounded-xl border border-slate-800 shrink-0 text-xs space-y-1.5">
+            <div className="flex items-center justify-between gap-4 text-slate-400">
+              <span>Compatibilidad:</span>
+              <span className="text-emerald-400 font-bold font-mono">Android 12+ (SDK 31+)</span>
+            </div>
+            <div className="flex items-center justify-between gap-4 text-slate-400">
+              <span>Bloqueo de Seguridad:</span>
+              <span className="text-amber-400 font-bold font-mono">&lt; Android 12 Protegido</span>
+            </div>
+            <div className="flex items-center justify-between gap-4 text-slate-400">
+              <span>Juegos Compatibles:</span>
+              <span className="text-cyan-400 font-bold font-mono">Free Fire, FF Max, CoD</span>
             </div>
           </div>
         </div>

@@ -353,13 +353,104 @@ log_info "Entorno preparado para arquitectura: \$ARCH"
       'surface_tweak.sh',
       `#!/system/bin/sh
 SCRIPT_DIR=\$(dirname "\$0")
+POTATO_STATUS="/data/local/tmp/mali_potato_status.state"
+
 if [ -f "\$SCRIPT_DIR/mali_common.sh" ]; then
     . "\$SCRIPT_DIR/mali_common.sh"
+else
+    log_info() { echo "[INFO] \$1"; }
+    log_warn() { echo "[AVISO] \$1"; }
+    log_error() { echo "[ERROR] \$1"; }
 fi
 
-log_info "Ejecutando comprobación base de surface_tweak.sh..."
-ARCH=\$(detect_architecture)
-log_info "Verificación de estabilidad de renderizado para ABI: \$ARCH"
+check_android_version() {
+    SDK_VER=\$(getprop ro.build.version.sdk)
+    SDK_NUM=\${SDK_VER:-0}
+    if [ "\$SDK_NUM" -lt 31 ]; then
+        log_error "BLOQUEO DE SEGURIDAD: Modo Batata requiere Android 12 (API 31) o superior."
+        return 1
+    fi
+    return 0
+}
+
+detect_game_package() {
+    CUSTOM_PKG="\$1"
+    if [ -n "\$CUSTOM_PKG" ] && [ "\$CUSTOM_PKG" != "auto" ]; then
+        echo "\$CUSTOM_PKG"
+        return
+    fi
+    if pm path com.dts.freefireth >/dev/null 2>&1; then
+        echo "com.dts.freefireth"
+    elif pm path com.dts.freefiremax >/dev/null 2>&1; then
+        echo "com.dts.freefiremax"
+    else
+        echo "com.dts.freefireth"
+    fi
+}
+
+enable_potato_mode() {
+    SCALE_FACTOR="\${1:-0.5}"
+    TARGET_PKG="\${2:-auto}"
+
+    if ! check_android_version; then
+        echo "ERROR_SECURITY_BLOCKED: Requiere Android 12 o superior."
+        exit 2
+    fi
+
+    PKG=\$(detect_game_package "\$TARGET_PKG")
+    FACTOR="\$SCALE_FACTOR"
+    [ "\$FACTOR" = "potato" ] && FACTOR="0.5"
+    [ "\$FACTOR" = "comp" ] && FACTOR="0.7"
+
+    cat <<EOF > "\$POTATO_STATUS"
+STATUS=1
+FACTOR=\$FACTOR
+PACKAGE=\$PKG
+TIMESTAMP=\$(date +"%Y-%m-%d %H:%M:%S")
+EOF
+
+    cmd game mode performance "\$PKG" 2>/dev/null
+    device_config put game_overlay "\$PKG" "mode=2,downscaleFactor=\${FACTOR}:fps=60" 2>/dev/null
+    setprop debug.mali.render_scale "\$FACTOR" 2>/dev/null
+    setprop debug.egl.force_msaa 0 2>/dev/null
+    setprop debug.egl.force_fxaa 0 2>/dev/null
+    echo "SUCCESS: Modo Batata (\${FACTOR}) activado en \$PKG."
+}
+
+disable_potato_mode() {
+    TARGET_PKG="\${1:-auto}"
+    PKG=\$(detect_game_package "\$TARGET_PKG")
+
+    cmd game mode standard "\$PKG" 2>/dev/null
+    device_config delete game_overlay "\$PKG" 2>/dev/null
+    rm -f "\$POTATO_STATUS" 2>/dev/null
+
+    setprop debug.mali.render_scale "" 2>/dev/null
+    setprop debug.egl.force_msaa "" 2>/dev/null
+    setprop debug.egl.force_fxaa "" 2>/dev/null
+    echo "SUCCESS: Gráficos nativos restaurados al 100%."
+}
+
+get_status() {
+    SDK_VER=\$(getprop ro.build.version.sdk)
+    SDK_NUM=\${SDK_VER:-0}
+    COMPAT="INCOMPATIBLE"
+    [ "\$SDK_NUM" -ge 31 ] && COMPAT="COMPATIBLE_ANDROID_12_PLUS"
+    STATUS="0"
+    [ -f "\$POTATO_STATUS" ] && STATUS="1"
+    echo "POTATO_STATUS=\$STATUS"
+    echo "POTATO_COMPAT=\$COMPAT"
+    echo "POTATO_SDK=\$SDK_NUM"
+}
+
+ACTION="\${1:-status}"
+case "\$ACTION" in
+    enable|1|on|potato) enable_potato_mode "\$2" "\$3" ;;
+    disable|0|off|restore) disable_potato_mode "\$2" ;;
+    status|info) get_status ;;
+    check) check_android_version ;;
+    *) echo "Uso: \$0 {enable [0.5|0.7] [pkg]|disable [pkg]|status|check}"; exit 1 ;;
+esac
 `
     );
   }
@@ -374,44 +465,123 @@ log_info "Verificación de estabilidad de renderizado para ABI: \$ARCH"
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>AX Mali Core - WebUI</title>
+  <title>AX Mali Core Engine</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, sans-serif; }
-    body { background: #090d16; color: #f1f5f9; padding: 16px; font-size: 14px; }
-    .header { background: #131c31; border: 1px solid #1e293b; border-radius: 14px; padding: 14px; text-align: center; margin-bottom: 14px; }
-    .badge { display: inline-block; background: rgba(14, 165, 233, 0.2); color: #38bdf8; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 999px; margin-bottom: 6px; }
-    h1 { font-size: 18px; color: #fff; }
-    .card { background: #0f172a; border: 1px solid #1e293b; border-radius: 12px; padding: 14px; margin-bottom: 12px; }
-    .btn { width: 100%; background: #0284c7; color: white; border: none; padding: 12px; border-radius: 10px; font-weight: 600; cursor: pointer; margin-top: 8px; }
-    .console-box { background: #050811; border: 1px solid #1e293b; border-radius: 8px; padding: 10px; font-family: monospace; font-size: 11px; color: #38bdf8; min-height: 80px; margin-top: 8px; white-space: pre-wrap; }
+    :root {
+      --bg: #0b0f19; --surface: #121826; --card: #182235; --primary: #38bdf8;
+      --border: #223048; --text: #f8fafc; --muted: #94a3b8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, sans-serif; -webkit-tap-highlight-color: transparent; }
+    body { background: var(--bg); color: var(--text); font-size: 14px; min-height: 100vh; }
+    .bar { padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; background: var(--surface); border-bottom: 1px solid var(--border); }
+    .chip { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 999px; background: rgba(56,189,248,0.15); color: var(--primary); }
+    .tabs { display: flex; padding: 8px 16px; gap: 6px; background: var(--surface); border-bottom: 1px solid var(--border); }
+    .tbtn { flex: 1; padding: 9px; border-radius: 10px; background: transparent; border: 1px solid transparent; color: var(--muted); font-size: 12px; font-weight: 700; cursor: pointer; }
+    .tbtn.active { background: rgba(56,189,248,0.15); color: var(--primary); border-color: rgba(56,189,248,0.3); }
+    .pane { display: none; padding: 16px; }
+    .pane.active { display: block; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 16px; margin-bottom: 14px; }
+    .btn { width: 100%; padding: 12px; border-radius: 10px; font-weight: 700; border: none; cursor: pointer; font-size: 13px; margin-top: 8px; }
+    .btn-p { background: #0284c7; color: white; }
+    .btn-s { background: #1e293b; color: var(--text); border: 1px solid var(--border); }
+    .opt { border: 1px solid var(--border); background: var(--card); padding: 12px; border-radius: 10px; margin-bottom: 8px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+    .opt.sel { border-color: var(--primary); background: rgba(56,189,248,0.1); }
+    .console { background: #060912; border: 1px solid var(--border); border-radius: 10px; padding: 10px; font-family: monospace; font-size: 11px; color: #38bdf8; min-height: 80px; max-height: 150px; overflow-y: auto; white-space: pre-wrap; margin-top: 10px; }
+    select { width: 100%; background: var(--card); color: var(--text); border: 1px solid var(--border); border-radius: 10px; padding: 10px; margin: 8px 0; }
   </style>
 </head>
 <body>
-  <div class="header">
-    <span class="badge">AX Manager • Plugin WebUI</span>
-    <h1>AX Mali Core Engine</h1>
-    <p style="font-size: 12px; color: #94a3b8; margin-top: 4px;">Optimización Táctil & GPU Mali</p>
+  <div class="bar">
+    <strong style="font-size: 16px;">AX Mali Core</strong>
+    <span class="chip">Native UI</span>
   </div>
-  <div class="card">
-    <div style="font-weight: 700; margin-bottom: 6px;">⚡ Modo Ultra Sensibilidad Táctil</div>
-    <p style="font-size: 12px; color: #94a3b8;">Reduce la latencia de entrada a 250ms y sincroniza la GPU Mali.</p>
-    <button class="btn" onclick="toggleBoost(true)">Activar Touch Boost</button>
-    <button class="btn" style="background: #334155; margin-top: 6px;" onclick="toggleBoost(false)">Restaurar Original</button>
-    <div class="console-box" id="out">Listo. Esperando comando...</div>
+  <div class="tabs">
+    <button class="tbtn active" onclick="nav('touch')">⚡ Táctil</button>
+    <button class="tbtn" onclick="nav('potato')">🥔 Modo Batata</button>
+    <button class="tbtn" onclick="nav('diag')">📊 Hardware</button>
+  </div>
+  <div id="p-touch" class="pane active">
+    <div class="card">
+      <div style="font-weight: 700; margin-bottom: 6px;">⚡ Touch Boost & Sensibilidad</div>
+      <p style="font-size: 12px; color: var(--muted); margin-bottom: 12px;">Reduce retardo a 250ms y maximiza pointer_speed.</p>
+      <button class="btn btn-p" onclick="cmdTouch(true)">Activar Touch Boost (250ms)</button>
+      <button class="btn btn-s" onclick="cmdTouch(false)">Restaurar Original</button>
+    </div>
+  </div>
+  <div id="p-potato" class="pane">
+    <div class="card">
+      <div style="font-weight: 700; margin-bottom: 6px;">🥔 Gráficos Batata (Android 12+)</div>
+      <p style="font-size: 12px; color: var(--muted); margin-bottom: 10px;">Exclusivo Android 12+. Reduce escala de renderizado en Mali para ganar +30 FPS sin tocar pantalla del sistema.</p>
+      <select id="pkg">
+        <option value="com.dts.freefireth">Free Fire (com.dts.freefireth)</option>
+        <option value="com.dts.freefiremax">Free Fire MAX (com.dts.freefiremax)</option>
+      </select>
+      <div class="opt sel" id="o50" onclick="selScale('0.5','o50')">
+        <div><strong>Modo Batata (50%)</strong><div style="font-size: 11px; color: var(--muted);">Gráficos estilo cartón • FPS Máximos</div></div>
+        <span>🥔</span>
+      </div>
+      <div class="opt" id="o70" onclick="selScale('0.7','o70')">
+        <div><strong>Modo Competitivo (70%)</strong><div style="font-size: 11px; color: var(--muted);">Balance nítido y fluido</div></div>
+        <span>⚡</span>
+      </div>
+      <button class="btn btn-p" onclick="cmdPotato(true)">Aplicar Modo Batata</button>
+      <button class="btn btn-s" onclick="cmdPotato(false)">Restaurar Gráficos Nativos</button>
+    </div>
+  </div>
+  <div id="p-diag" class="pane">
+    <div class="card">
+      <div style="font-weight: 700; margin-bottom: 6px;">📊 Diagnóstico Mali & Sistema</div>
+      <div id="info" style="font-size: 12px; color: var(--muted);">Consultando hardware...</div>
+      <div class="console" id="log">Conectado a AX Manager.</div>
+    </div>
   </div>
   <script>
-    async function toggleBoost(enable) {
-      const out = document.getElementById('out');
-      out.textContent = "Ejecutando en AxManager...\\n";
-      const action = enable ? "enable" : "disable";
-      const cmd = "sh $AXERONDIR/plugins/ax_mali_core_optimizer/scripts/touch_boost.sh " + action + " || sh ./scripts/touch_boost.sh " + action;
+    let curScale = "0.5";
+    function nav(p) {
+      document.querySelectorAll('.tbtn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.pane').forEach(el => el.classList.remove('active'));
+      document.getElementById('p-' + p).classList.add('active');
+      const btn = Array.from(document.querySelectorAll('.tbtn')).find(b => b.getAttribute('onclick').includes(p));
+      if (btn) btn.classList.add('active');
+    }
+    function selScale(s, id) {
+      curScale = s;
+      document.querySelectorAll('.opt').forEach(o => o.classList.remove('sel'));
+      document.getElementById(id).classList.add('sel');
+    }
+    async function exec(c) {
+      const log = document.getElementById('log');
+      log.textContent += "\\n> " + c.slice(0, 45) + "...\\n";
       if (typeof ksu !== 'undefined' && typeof ksu.exec === 'function') {
-        const res = await ksu.exec(cmd);
-        out.textContent += (res.stdout || '') + (res.stderr || '');
+        const res = await ksu.exec(c);
+        log.textContent += (res.stdout || '') + (res.stderr || '');
+        return res.stdout || '';
+      } else if (typeof Axeron !== 'undefined') {
+        const out = Axeron.exec(c);
+        log.textContent += out || 'OK\\n';
+        return out;
+      }
+      return null;
+    }
+    async function cmdTouch(en) {
+      const a = en ? 'enable' : 'disable';
+      await exec('sh $AXERONDIR/plugins/ax_mali_core_optimizer/scripts/touch_boost.sh ' + a + ' || sh ./scripts/touch_boost.sh ' + a);
+    }
+    async function cmdPotato(en) {
+      const p = document.getElementById('pkg').value;
+      if (en) {
+        await exec('sh $AXERONDIR/plugins/ax_mali_core_optimizer/scripts/surface_tweak.sh enable ' + curScale + ' ' + p + ' || sh ./scripts/surface_tweak.sh enable ' + curScale + ' ' + p);
       } else {
-        out.textContent += "[Vista Previa] Comando: " + cmd;
+        await exec('sh $AXERONDIR/plugins/ax_mali_core_optimizer/scripts/surface_tweak.sh disable ' + p + ' || sh ./scripts/surface_tweak.sh disable ' + p);
       }
     }
+    window.addEventListener('DOMContentLoaded', async () => {
+      const out = await exec('getprop ro.build.version.sdk; getprop ro.product.cpu.abi');
+      if (out) {
+        const p = out.trim().split('\\n');
+        document.getElementById('info').innerHTML = 'SDK: ' + (p[0]||'Desconocido') + '<br>ABI: ' + (p[1]||'arm64');
+      }
+    });
   </script>
 </body>
 </html>

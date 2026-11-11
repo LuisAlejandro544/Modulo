@@ -115,9 +115,9 @@ export const MODULE_SCRIPTS: ScriptFileInfo[] = [
     name: 'surface_tweak.sh',
     path: '/ax_module/scripts/surface_tweak.sh',
     category: 'runtime',
-    description: 'Estructura modular para renderizado, tasa de refresco y buffers de SurfaceFlinger.',
+    description: 'Modo Batata / Gráficos de Cartón exclusivo para Android 12+ (SDK >= 31): reduce la escala de renderizado a nivel de SurfaceFlinger para maximizar FPS en Mali sin tocar resoluciones globales ni riesgo de baneo.',
     supportedArch: '32-bit & 64-bit',
-    codeSnippet: `init_surface_hooks() {\n  log_info "Hooks de SurfaceFlinger preparados para próxima integración."\n}`,
+    codeSnippet: `enable_potato_mode() {\n  if [ "$SDK_NUM" -lt 31 ]; then exit 2; fi\n  cmd game mode performance "$PKG"\n  device_config put game_overlay "$PKG" "mode=2,downscaleFactor=0.5:fps=60"\n  setprop debug.mali.render_scale 0.5\n}`,
   },
   {
     name: 'uninstall.sh',
