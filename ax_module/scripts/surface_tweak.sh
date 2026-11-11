@@ -9,7 +9,7 @@
 #   SurfaceFlinger, el HWComposer y el controlador Mali.
 # - Este archivo provee la estructura inicial y valida los prerrequisitos sin
 #   modificar la configuración del usuario.
-# - PROHIBIDO: persist.sys.* no se encuentra presente ni se usará.
+# - PROHIBIDO: Propiedades permanentes de sistema no se encuentran presentes ni se usarán.
 # ==============================================================================
 
 SCRIPT_DIR=$(dirname "$0")

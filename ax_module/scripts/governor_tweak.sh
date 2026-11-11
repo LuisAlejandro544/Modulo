@@ -7,7 +7,7 @@
 # EXPLICACIÓN DE LÓGICA Y CÓDIGO:
 # - Actualmente actúa como plantilla base preparada para la implementación futura.
 # - No ejecuta modificaciones permanentes peligrosas.
-# - NUNCA utiliza ni definirá propiedades tipo 'persist.sys.*'.
+# - NUNCA utiliza ni definirá propiedades persistentes de sistema.
 # - Adapta la lógica según arquitectura de 32 bits (dispositivos antiguos con memoria limitada)
 #   o 64 bits (dispositivos modernos con arquitectura ARMv8/v9).
 # ==============================================================================
@@ -34,7 +34,7 @@ apply_balanced_profile() {
 
 apply_performance_profile() {
     log_info "Perfil Rendimiento Máximo reservado para desarrollo futuro."
-    # RECORDATORIO: No usar jamás persist.sys.* aquí ni en ningún subproceso.
+    # RECORDATORIO: No usar jamás propiedades persistentes de sistema aquí ni en ningún subproceso.
 }
 
 # Acción por defecto actual

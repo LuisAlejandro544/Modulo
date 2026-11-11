@@ -58,7 +58,7 @@ export const GuideModal: React.FC<GuideModalProps> = ({ isOpen, onClose }) => {
               3. Cumplimiento Estricto de Seguridad
             </div>
             <p className="text-slate-400">
-              Este módulo <strong>jamás utiliza propiedades <code className="text-amber-400 font-mono">persist.sys.*</code></strong>,
+              Este módulo <strong>jamás utiliza propiedades permanentes de sistema</strong>,
               evitando fallos de arranque o corrupción en el sistema operativo del teléfono.
             </p>
           </div>

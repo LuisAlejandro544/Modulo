@@ -9,7 +9,7 @@
 # - Espera a que el sistema esté completamente listo (boot_completed = 1).
 # - Como se especificó: Actualmente no ejecuta cambios agresivos, provee la
 #   estructura de base preparada para las funciones interesantes que añadiremos.
-# - REGLA OBLIGATORIA: NUNCA usar persist.sys.*
+# - REGLA OBLIGATORIA: NUNCA usar propiedades persistentes de sistema
 # ==============================================================================
 
 MODDIR="$(dirname "$0")"

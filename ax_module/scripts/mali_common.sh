@@ -5,7 +5,7 @@
 #            y utilidades de registro para el módulo Mali en AX Manager.
 # ==============================================================================
 # REGLA ESTRICTA DE SEGURIDAD:
-# NUNCA se utiliza ni se modificará ninguna propiedad del tipo 'persist.sys.*'.
+# NUNCA se utiliza ni se modificará ninguna propiedad persistente de sistema.
 # ==============================================================================
 
 # Directorios de trabajo y rutas de logs

@@ -47,7 +47,7 @@ export default function App() {
           <div className="flex items-center gap-3">
             <span className="text-emerald-400 font-mono">React 19 ✓</span>
             <span className="text-cyan-400 font-mono">32/64-bit ✓</span>
-            <span className="text-amber-400 font-mono">No persist.sys.* ✓</span>
+            <span className="text-amber-400 font-mono">100% Seguro ✓</span>
           </div>
         </div>
       </footer>

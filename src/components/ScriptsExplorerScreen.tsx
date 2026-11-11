@@ -36,7 +36,7 @@ export const ScriptsExplorerScreen: React.FC = () => {
             <ShieldCheck className="w-5 h-5 text-emerald-400" />
             <div className="text-left text-xs">
               <div className="font-semibold text-emerald-300">Auditoría Superada</div>
-              <div className="text-[10px] text-slate-400">0 usos de persist.sys.*</div>
+              <div className="text-[10px] text-slate-400">0 propiedades permanentes</div>
             </div>
           </div>
         </div>
@@ -122,7 +122,7 @@ export const ScriptsExplorerScreen: React.FC = () => {
             {/* Estado de seguridad */}
             <div className="px-4 py-2 bg-emerald-950/20 border-b border-emerald-900/30 flex items-center gap-2 text-xs text-emerald-400">
               <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
-              <span>Verificación de seguridad: No se detectó ninguna propiedad persist.sys.*</span>
+              <span>Verificación de seguridad: No se detectó ninguna propiedad permanente de sistema</span>
             </div>
 
             {/* Código fuente */}

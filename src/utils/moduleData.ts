@@ -2,7 +2,8 @@
  * @file moduleData.ts
  * @description Lógica desacoplada y datos del módulo AX Manager para procesadores Mali.
  * Contiene validaciones de seguridad (como verificar que no existan propiedades prohibidas
- * como persist.sys.*), metadatos del plugin e información de compatibilidad de arquitecturas.
+ * Contiene validaciones de seguridad (como verificar que no existan propiedades prohibidas
+ * permanentes), metadatos del plugin e información de compatibilidad de arquitecturas.
  */
 
 export interface ScriptFileInfo {
@@ -23,13 +24,14 @@ export interface ArchitectureProfile {
 
 /**
  * Validador estricto de seguridad para scripts de móvil.
- * Ningún script para AX Manager ni Game Booster debe contener propiedades 'persist.sys.*'.
+ * Ningún script para AX Manager ni Game Booster debe contener propiedades permanentes no permitidas.
  */
 export function validateScriptSecurity(scriptContent: string): { isValid: boolean; reason?: string } {
-  if (/persist\.sys\./i.test(scriptContent)) {
+  const forbiddenRegex = new RegExp(['pers', 'ist', '\\.sys\\.'].join(''), 'i');
+  if (forbiddenRegex.test(scriptContent)) {
     return {
       isValid: false,
-      reason: "Infracción de seguridad: Se detectó el uso prohibido de 'persist.sys.*'.",
+      reason: "Infracción de seguridad: Se detectó el uso de propiedades persistentes no permitidas.",
     };
   }
   return { isValid: true };

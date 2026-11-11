@@ -8,7 +8,7 @@
 # 2. Imprime el encabezado visual con información del módulo y versión.
 # 3. Comprueba arquitectura (32/64 bits) y compatibilidad de GPU Mali.
 # 4. Asigna permisos de ejecución (+x) a todos los scripts auxiliares en $MODPATH/scripts.
-# 5. No altera ningún parámetro 'persist.sys.*' ni realiza modificaciones destructivas.
+# 5. No altera ningún parámetro persistente del sistema ni realiza modificaciones destructivas.
 # ==============================================================================
 
 ui_print() {

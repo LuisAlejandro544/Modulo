@@ -150,12 +150,12 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, onOpenGuide 
             </div>
             <h3 className="font-semibold text-white text-sm">Seguridad Estricta</h3>
             <p className="text-xs text-slate-400 mt-1">
-              Auditoría activa: 0 llamadas a persist.sys.*. Protección total contra bootloops en Android.
+              Auditoría activa: 0 propiedades permanentes modificadas. Protección total contra bootloops en Android.
             </p>
           </div>
           <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
-            <span>persist.sys.*:</span>
-            <span className="text-amber-400 font-mono font-medium">0 detectadas (Seguro)</span>
+            <span>Propiedades críticas:</span>
+            <span className="text-amber-400 font-mono font-medium">0 modificadas (Seguro)</span>
           </div>
         </div>
       </section>

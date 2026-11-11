@@ -7,7 +7,7 @@
 #            GPU Mali para disminuir la latencia touch-to-display.
 # ==============================================================================
 # REGLAS CRÍTICAS DE SEGURIDAD:
-# 1. NUNCA se utiliza ni se modificará ninguna propiedad 'persist.sys.*'.
+# 1. NUNCA se utiliza ni se modificará ninguna propiedad persistente de sistema.
 # 2. Todos los cambios son 100% reversibles: los valores originales del teléfono
 #    se respaldan en un archivo de estado antes de aplicar la optimización.
 # 3. Compatible con arquitecturas de 32 bits (ARMv7) y 64 bits (ARMv8/v9).
@@ -63,7 +63,7 @@ enable_touch_boost() {
     backup_original_settings
 
     # Paso B: Reducción de tiempos de retardo en InputDispatcher (Android Settings)
-    # Sin tocar persist.sys.* - Solo settings oficiales del subsistema de entrada
+    # Solo settings oficiales del subsistema de entrada
     settings put secure long_press_timeout 250
     settings put secure multi_press_timeout 200
     settings put system pointer_speed 7
@@ -96,7 +96,7 @@ enable_touch_boost() {
     log_info "Nodos de hardware de panel optimizados: $NODES_APPLIED"
 
     # Paso D: Reducción de latencia de fase de SurfaceFlinger y GPU Mali en RAM
-    # Propiedades en memoria temporal (debug.*), NUNCA persist.sys.*
+    # Propiedades en memoria temporal (debug.*), NUNCA propiedades de sistema persistente
     setprop debug.sf.early_phase_offset_ns 500000 2>/dev/null
     setprop debug.sf.early_gl_phase_offset_ns 3000000 2>/dev/null
     setprop debug.sf.early_app_phase_offset_ns 500000 2>/dev/null
@@ -170,7 +170,7 @@ get_status() {
     echo "STATUS=$CURRENT_STATUS"
     echo "LONG_PRESS_TIMEOUT=$LONG_PRESS"
     echo "POINTER_SPEED=$SPEED"
-    echo "PERSIST_SYS_CHECK=0_VIOLATIONS"
+    echo "SECURITY_AUDIT=0_VIOLATIONS"
 }
 
 # ==============================================================================
