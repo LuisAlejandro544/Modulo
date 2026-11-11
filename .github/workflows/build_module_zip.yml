@@ -1,0 +1,65 @@
+name: Build AX Manager Module ZIP
+
+# ==============================================================================
+# DISPARADOR ESTRICTAMENTE MANUAL (workflow_dispatch)
+# ==============================================================================
+# Por especificación del proyecto:
+# NO se ejecuta automáticamente en commits (push) ni en pull requests.
+# Se activa EXCLUSIVAMENTE de forma manual por el usuario desde la pestaña Actions de GitHub.
+# ==============================================================================
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_tag:
+        description: 'Versión o etiqueta para el archivo ZIP generado'
+        required: false
+        default: 'v1.0.0'
+
+jobs:
+  package-module:
+    name: Empaquetar Módulo AX Manager
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+
+      - name: Auditoría estricta de seguridad (Verificar cero persist.sys.*)
+        run: |
+          echo "Ejecutando auditoría de seguridad en scripts de ax_module..."
+          if grep -rnE "persist\.sys\." ax_module/; then
+            echo "::error::Infracción crítica de seguridad: Se detectó el uso de 'persist.sys.*' en los scripts del módulo."
+            exit 1
+          else
+            echo "Auditoría aprobada: Cero referencias a persist.sys.* encontradas."
+          fi
+
+      - name: Asignar permisos y verificar estructura de archivos
+        run: |
+          echo "Verificando archivos requeridos para AxManager..."
+          test -f ax_module/module.prop || { echo "Falta module.prop"; exit 1; }
+          test -f ax_module/customize.sh || { echo "Falta customize.sh"; exit 1; }
+          test -f ax_module/service.sh || { echo "Falta service.sh"; exit 1; }
+          test -f ax_module/webroot/index.html || { echo "Falta webroot/index.html"; exit 1; }
+          test -f ax_module/scripts/touch_boost.sh || { echo "Falta touch_boost.sh"; exit 1; }
+          
+          chmod +x ax_module/*.sh ax_module/scripts/*.sh
+          echo "Estructura verificada correctamente."
+
+      - name: Comprimir paquete ZIP para AX Manager
+        run: |
+          mkdir -p dist
+          # La compresión se realiza desde la raíz de ax_module para que module.prop y customize.sh queden en el root del ZIP
+          cd ax_module
+          zip -r ../dist/ax_mali_core_optimizer_${{ github.event.inputs.version_tag || 'v1.0.0' }}.zip ./*
+          cd ..
+          echo "ZIP generado con éxito en dist/"
+          ls -lh dist/
+
+      - name: Subir artefacto ZIP descargable
+        uses: actions/upload-artifact@v4
+        with:
+          name: ax_mali_core_optimizer_${{ github.event.inputs.version_tag || 'v1.0.0' }}
+          path: dist/*.zip
+          retention-days: 30

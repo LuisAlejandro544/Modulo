@@ -1,0 +1,6 @@
+{
+  "name": "AX Mali Module Manager",
+  "description": "Base técnica y módulo interactivo para procesadores Mali en AX Manager con scripts shell para Android.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
