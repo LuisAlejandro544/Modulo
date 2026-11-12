@@ -45,6 +45,7 @@ rm -f /data/local/tmp/mali_touch_*.state 2>/dev/null
 rm -f /data/local/tmp/mali_fps_*.state 2>/dev/null
 rm -f /data/local/tmp/mali_potato_status.state 2>/dev/null
 rm -f /data/local/tmp/mali_ram_*.state 2>/dev/null
+rm -f /data/local/tmp/mali_ram_frozen.* 2>/dev/null
 rm -f /data/local/tmp/mali_governor_*.state 2>/dev/null
 rm -f /data/local/tmp/mali_gms_*.state 2>/dev/null
 rm -f /data/local/tmp/mali_angle_*.state 2>/dev/null

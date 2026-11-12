@@ -66,9 +66,9 @@ export const MODULE_SCRIPTS: ScriptFileInfo[] = [
     name: 'touch_boost.sh',
     path: '/ax_module/scripts/touch_boost.sh',
     category: 'runtime',
-    description: 'Ultra Sensibilidad Táctil & Alzar Mira: Touch Slop 1px (respuesta inmediata), eliminación de contrapresión de SurfaceFlinger (Zero Backpressure), InputDispatcher a 250ms y pointer_speed 7 con respaldo 100% reversible.',
+    description: 'Ultra Sensibilidad Táctil Nivel Insignia: Modo Glove/Alta Sensibilidad en digitalizador, VelocityTracker Strategy Impulse, Disolución de micro-fricción (Scroll Friction 0.005 & Slop 1px), Boost instantáneo de CPU/DRAM en MediaTek (GED & FPSGO) y Zero Backpressure 100% reversible.',
     supportedArch: '32-bit & 64-bit',
-    codeSnippet: `enable_touch_boost() {\n  backup_original_settings\n  settings put secure long_press_timeout 250\n  settings put system pointer_speed 7\n  setprop view.touch_slop 1\n  setprop debug.sf.disable_backpressure 1\n  setprop debug.sf.early_phase_offset_ns 500000\n  echo "1" > "$STATUS_FILE"\n}`,
+    codeSnippet: `enable_touch_boost() {\n  backup_original_settings\n  settings put secure long_press_timeout 250\n  settings put system pointer_speed 7\n  setprop debug.input.velocitytracker.strategy impulse\n  setprop view.touch_slop 1\n  setprop view.scroll_friction 0.005\n  setprop debug.sf.disable_backpressure 1\n  # MediaTek GED & FPSGO Touch Boost\n  echo 1 > /sys/module/ged/parameters/gx_force_cpu_boost\n  echo 1 > /sys/kernel/fpsgo/fbt/boost_ta\n  echo "1" > "$STATUS_FILE"\n}`,
   },
   {
     name: 'module.prop',
@@ -122,9 +122,9 @@ export const MODULE_SCRIPTS: ScriptFileInfo[] = [
     name: 'ram_tweak.sh',
     path: '/ax_module/scripts/ram_tweak.sh',
     category: 'runtime',
-    description: 'Módulo Anti-Stutter de Memoria RAM & ZRAM: Ajusta swappiness a 50 (evita picos de CPU por compresión ZRAM en combate), vfs_cache_pressure a 50 y page-cluster a 0 con respaldo 100% reversible.',
+    description: 'Módulo Anti-Stutter de Memoria RAM, ZRAM & Congelador de Procesos: En lugar de matar apps (que se levantan solas), las congela en segundo plano con SIGSTOP (0% CPU) mientras juegas. Al desactivar, las descongela (SIGCONT) sin pérdida de datos.',
     supportedArch: '32-bit & 64-bit',
-    codeSnippet: `enable_ram_tweak() {\n  backup_ram_settings\n  echo 50 > /proc/sys/vm/swappiness\n  echo 50 > /proc/sys/vm/vfs_cache_pressure\n  echo 0 > /proc/sys/vm/page-cluster\n  sync; echo 3 > /proc/sys/vm/drop_caches\n}`,
+    codeSnippet: `enable_ram_tweak() {\n  backup_ram_settings\n  echo 50 > /proc/sys/vm/swappiness\n  echo 50 > /proc/sys/vm/vfs_cache_pressure\n  echo 0 > /proc/sys/vm/page-cluster\n  freeze_background_apps # kill -STOP a procesos de fondo\n  sync; echo 3 > /proc/sys/vm/drop_caches\n}`,
   },
   {
     name: 'gms_shield.sh',

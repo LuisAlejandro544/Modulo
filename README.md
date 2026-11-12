@@ -6,11 +6,13 @@ Plataforma de desarrollo, control y empaquetado de módulos para procesadores gr
 
 ## 🚀 Características Principales
 
-1. **Modo Ultra Sensibilidad Táctil (`touch_boost.sh`):**
-   - Reduce los retardos de entrada del `InputDispatcher` de Android (`long_press_timeout` a 250ms, `pointer_speed` a nivel 7).
-   - Escanea y activa nodos de hardware de alta tasa de reporte del digitalizador en SoCs MediaTek.
-   - Sincroniza la composición temprana de `SurfaceFlinger` y la GPU Mali (`early_phase_offset_ns`).
-   - **100% Reversible:** Realiza un respaldo en caliente de la configuración del usuario antes de aplicar cualquier cambio para permitir la restauración exacta.
+1. **Modo Ultra Sensibilidad Táctil Nivel Insignia (`touch_boost.sh`):**
+   - **Glove Mode / Alta Sensibilidad:** Activa la ganancia analógica de los digitalizadores (Goodix, FocalTech, Novatek, Synaptics) y elimina el límite de polling de Oppo/Realme.
+   - **VelocityTracker Strategy Impulse:** Sintoniza el algoritmo de seguimiento a 1:1 sin amortiguación de inercia para alzar mira instantáneamente.
+   - **Disolución de Micro-fricción:** Reduce la fricción de scroll a `0.005` (vs estándar `0.015`) y Touch Slop a `1px`.
+   - **MediaTek Touch Boost (GED & FPSGO):** Dispara ráfagas de CPU/GPU al toque en `/sys/module/ged/parameters` y `/sys/kernel/fpsgo/fbt`.
+   - **Zero Backpressure & Fases:** Sincroniza la composición temprana de `SurfaceFlinger` (`early_phase_offset_ns`).
+   - **100% Reversible:** Realiza un respaldo en caliente de la configuración del usuario y de los nodos sysfs para una restauración exacta.
 
 2. **Módulo Anti-Stutter RAM & ZRAM (`ram_tweak.sh`):**
    - Ajusta `vm.swappiness` a 50 para evitar que el kernel sature la CPU comprimiendo memoria en ZRAM durante tiroteos.

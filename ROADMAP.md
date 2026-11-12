@@ -15,6 +15,7 @@ Este documento define la trayectoria técnica del módulo y de la plataforma web
   - `swappiness` ajustado a 50 para suprimir picos de compresión ZRAM en combate.
   - `vfs_cache_pressure` en 50 para retener estructuras de juego en RAM.
   - `page-cluster` en 0 para lecturas atómicas de 1 página sin ráfagas de retardo.
+  - **Congelador de Procesos (`SIGSTOP`/`SIGCONT`)**: Pausa apps de fondo en 0% CPU mientras el script está activo para que Android no intente revivirlas; las reanuda intactas al desactivar.
   - Detección y advertencia de la "RAM Virtual" lenta en disco flash.
 - [x] **Piso de Frecuencia GPU Mali (`governor_tweak.sh`)**:
   - Detección de nodos devfreq (`/sys/class/misc/mali0/device/devfreq/*/min_freq` y MediaTek GED).

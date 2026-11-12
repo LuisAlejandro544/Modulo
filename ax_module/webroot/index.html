@@ -548,6 +548,25 @@
           </div>
         </div>
 
+        <!-- Tarjeta del Congelador de Procesos SIGSTOP -->
+        <div class="pillar-card" style="margin-top: 10px;">
+          <div class="pillar-header">
+            <span class="pillar-title">❄️ Congelador de Procesos (SIGSTOP)</span>
+            <span class="pillar-tag" id="txtFrozenAppsCount">Pausadas en 0% CPU</span>
+          </div>
+          <p class="pillar-desc">
+            En vez de matar apps (que se levantan a los 5 segundos), las congela en el kernel de Linux. Cero consumo de CPU y memoria sin cierres forzados. Al desactivar, vuelven a la normalidad de inmediato.
+          </p>
+          <div style="display: flex; gap: 6px; margin-top: 8px;">
+            <button class="btn btn-secondary" style="flex: 1; padding: 8px; font-size: 11px;" onclick="freezeAppsManual()">
+              <span>❄️</span> Congelar Apps Ahora
+            </button>
+            <button class="btn btn-secondary" style="flex: 1; padding: 8px; font-size: 11px;" onclick="thawAppsManual()">
+              <span>☀️</span> Reanudar Apps
+            </button>
+          </div>
+        </div>
+
         <button class="btn btn-primary" onclick="purgeRamManual()">
           <span>🧹</span>
           <span>Purgar Caché RAM Ahora (Liberar Memoria Sucia)</span>
@@ -653,22 +672,22 @@
     </section>
 
     <!-- =================================================================== -->
-    <!-- APARTADO 5: Sensibilidad Táctil (Touch Boost)                       -->
+    <!-- APARTADO 5: Sensibilidad Táctil Insignia (Touch Boost)                -->
     <!-- =================================================================== -->
     <section id="tab-touch" class="tab-pane">
       <div class="card">
         <div class="card-title">
-          <span>Respuesta Táctil & Alzar Mira</span>
+          <span>Sensibilidad Táctil Nivel Insignia</span>
           <span id="touchPill" style="font-size: 11px; font-weight: 700; color: #94a3b8;">Inactivo</span>
         </div>
         <p class="card-desc">
-          Reduce Touch Slop a 1px para registrar el dedo al instante y elimina la contrapresión de SurfaceFlinger para entrega inmediata de frames a la GPU Mali.
+          Convierte la respuesta táctil en la de un gama alta: activa Glove Mode / alta ganancia en el panel, rastreador VelocityTracker Impulse sin inercia, disuelve la fricción a 0.005 y acelera CPU/DRAM en MediaTek al toque (GED & FPSGO).
         </p>
 
         <div class="setting-item">
           <div>
-            <div class="setting-name">Ultra Sensibilidad & Zero Delay</div>
-            <div class="setting-sub">Slop 1px • No Backpressure • Pointer 7</div>
+            <div class="setting-name">Ultra Sensibilidad & Alzar Mira</div>
+            <div class="setting-sub">Glove Mode • Impulse • Fricción 0.005 • MTK Boost</div>
           </div>
           <label class="toggle">
             <input type="checkbox" id="touchToggle" onchange="toggleTouch(this.checked)">
@@ -682,22 +701,30 @@
             <div class="metric-v" id="txtSlop">Estándar (8-16px)</div>
           </div>
           <div class="metric-box">
-            <div class="metric-k">SurfaceFlinger</div>
-            <div class="metric-v" id="txtBP">Con contrapresión</div>
+            <div class="metric-k">Fricción Scroll</div>
+            <div class="metric-v" id="txtFriction">0.015 (Estándar)</div>
           </div>
           <div class="metric-box">
-            <div class="metric-k">Input Delay</div>
+            <div class="metric-k">Rastreador</div>
+            <div class="metric-v" id="txtTracker">LSQ2 (Con inercia)</div>
+          </div>
+          <div class="metric-box">
+            <div class="metric-k">MediaTek Boost</div>
+            <div class="metric-v" id="txtMtkBoost">Inactivo</div>
+          </div>
+          <div class="metric-box">
+            <div class="metric-k">Glove Mode</div>
+            <div class="metric-v" id="txtGlove">Apagado</div>
+          </div>
+          <div class="metric-box">
+            <div class="metric-k">Input Timeout</div>
             <div class="metric-v" id="txtDelay">400 ms (Normal)</div>
-          </div>
-          <div class="metric-box">
-            <div class="metric-k">Velocidad Puntero</div>
-            <div class="metric-v" id="txtPointer">Nivel 0</div>
           </div>
         </div>
 
         <div class="banner banner-success">
           <span>🛡️</span>
-          <span>100% Reversible. Al desactivar, tus ajustes de fábrica se restauran sin reiniciar.</span>
+          <span>100% Reversible. Respalda y restaura automáticamente el estado de fábrica de todos los nodos de kernel y settings.</span>
         </div>
       </div>
     </section>
@@ -1060,6 +1087,32 @@
       pill.style.color = enable ? "#34d399" : "#94a3b8";
     }
 
+    async function freezeAppsManual() {
+      const cmd = `
+        for S in \
+          "$AXERONDIR/plugins/ax_mali_core_optimizer/scripts/ram_tweak.sh" \
+          "$MODDIR/scripts/ram_tweak.sh" \
+          "./scripts/ram_tweak.sh"; do
+          if [ -f "$S" ]; then sh "$S" freeze; exit 0; fi
+        done
+      `;
+      await runShell(cmd);
+      alert("Apps secundarias congeladas con éxito mediante SIGSTOP. 0% consumo de CPU.");
+    }
+
+    async function thawAppsManual() {
+      const cmd = `
+        for S in \
+          "$AXERONDIR/plugins/ax_mali_core_optimizer/scripts/ram_tweak.sh" \
+          "$MODDIR/scripts/ram_tweak.sh" \
+          "./scripts/ram_tweak.sh"; do
+          if [ -f "$S" ]; then sh "$S" thaw; exit 0; fi
+        done
+      `;
+      await runShell(cmd);
+      alert("Todas las aplicaciones han sido descongeladas y restauradas a la normalidad.");
+    }
+
     async function auditRamInfo() {
       const cmd = `
         for S in \
@@ -1153,9 +1206,11 @@
     async function toggleTouch(enable) {
       const pill = document.getElementById('touchPill');
       const txtSlop = document.getElementById('txtSlop');
-      const txtBP = document.getElementById('txtBP');
+      const txtFriction = document.getElementById('txtFriction');
+      const txtTracker = document.getElementById('txtTracker');
+      const txtMtkBoost = document.getElementById('txtMtkBoost');
+      const txtGlove = document.getElementById('txtGlove');
       const txtDelay = document.getElementById('txtDelay');
-      const txtPointer = document.getElementById('txtPointer');
 
       const action = enable ? "enable" : "disable";
       const cmd = `
@@ -1168,12 +1223,16 @@
         if [ "${action}" = "enable" ]; then
           settings put secure long_press_timeout 250
           settings put system pointer_speed 7
+          setprop debug.input.velocitytracker.strategy impulse
           setprop view.touch_slop 1
+          setprop view.scroll_friction 0.005
           setprop debug.sf.disable_backpressure 1
         else
           settings put secure long_press_timeout 400
           settings put system pointer_speed 0
+          setprop debug.input.velocitytracker.strategy ""
           setprop view.touch_slop ""
+          setprop view.scroll_friction ""
           setprop debug.sf.disable_backpressure ""
         fi
       `;
@@ -1182,27 +1241,35 @@
       await runShell(cmd);
 
       if (enable) {
-        pill.textContent = "Activo (Slop 1px)";
+        pill.textContent = "Activo (Insignia)";
         pill.style.color = "#34d399";
         txtSlop.textContent = "1 px (Instantáneo)";
         txtSlop.style.color = "#34d399";
-        txtBP.textContent = "Zero Backpressure";
-        txtBP.style.color = "#34d399";
+        txtFriction.textContent = "0.005 (Mantequilla)";
+        txtFriction.style.color = "#34d399";
+        txtTracker.textContent = "Impulse (1:1)";
+        txtTracker.style.color = "#34d399";
+        txtMtkBoost.textContent = "GED & FPSGO ON";
+        txtMtkBoost.style.color = "#34d399";
+        txtGlove.textContent = "Alta Ganancia ON";
+        txtGlove.style.color = "#34d399";
         txtDelay.textContent = "250 ms";
         txtDelay.style.color = "#34d399";
-        txtPointer.textContent = "Nivel 7 (Máximo)";
-        txtPointer.style.color = "#34d399";
       } else {
         pill.textContent = "Inactivo";
         pill.style.color = "#94a3b8";
         txtSlop.textContent = "Estándar (8-16px)";
         txtSlop.style.color = "#f8fafc";
-        txtBP.textContent = "Con contrapresión";
-        txtBP.style.color = "#f8fafc";
+        txtFriction.textContent = "0.015 (Estándar)";
+        txtFriction.style.color = "#f8fafc";
+        txtTracker.textContent = "LSQ2 (Con inercia)";
+        txtTracker.style.color = "#f8fafc";
+        txtMtkBoost.textContent = "Inactivo";
+        txtMtkBoost.style.color = "#f8fafc";
+        txtGlove.textContent = "Apagado";
+        txtGlove.style.color = "#f8fafc";
         txtDelay.textContent = "400 ms (Normal)";
         txtDelay.style.color = "#f8fafc";
-        txtPointer.textContent = "Nivel 0";
-        txtPointer.style.color = "#f8fafc";
       }
     }
 

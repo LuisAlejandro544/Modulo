@@ -72,22 +72,27 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, onOpenGuide 
               Función de Entrada
             </div>
             <h2 className="text-xl sm:text-2xl font-bold text-white">
-              Optimización de Sensibilidad y Respuesta Táctil
+              Sensibilidad Táctil Nivel Insignia & Alzar Mira
             </h2>
             <p className="text-xs sm:text-sm text-slate-300 max-w-2xl leading-relaxed">
               Ejecutado a través de <code className="text-cyan-300 font-mono">touch_boost.sh</code> y controlado con un switch en el WebUI
-              de AxManager. Reduce drásticamente la latencia touch-to-display sincronizando InputDispatcher, nodos del panel y el pipeline de la GPU Mali.
+              de AxManager. Activa <strong>Glove Mode</strong> en el digitalizador, algoritmo <strong>VelocityTracker Impulse</strong> (1:1 sin inercia),
+              disuelve la fricción a <strong>0.005</strong> y sincroniza el <strong>Boost de CPU/DRAM MediaTek (GED & FPSGO)</strong>.
             </p>
           </div>
 
           <div className="bg-slate-950/80 p-4 rounded-xl border border-slate-800 shrink-0 text-xs space-y-1.5">
             <div className="flex items-center justify-between gap-4 text-slate-400">
-              <span>Input Timeout:</span>
-              <span className="text-emerald-400 font-bold font-mono">250 ms (vs 400ms)</span>
+              <span>Rastreador:</span>
+              <span className="text-emerald-400 font-bold font-mono">Impulse (Sin inercia)</span>
             </div>
             <div className="flex items-center justify-between gap-4 text-slate-400">
-              <span>Velocidad Puntero:</span>
-              <span className="text-cyan-400 font-bold font-mono">Nivel 7 (Máximo)</span>
+              <span>Fricción Scroll:</span>
+              <span className="text-cyan-400 font-bold font-mono">0.005 (Mantequilla)</span>
+            </div>
+            <div className="flex items-center justify-between gap-4 text-slate-400">
+              <span>MediaTek GED:</span>
+              <span className="text-amber-400 font-bold font-mono">CPU/GPU Boost ON</span>
             </div>
             <div className="flex items-center justify-between gap-4 text-slate-400">
               <span>Respaldo Automático:</span>

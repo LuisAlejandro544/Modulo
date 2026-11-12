@@ -34,6 +34,9 @@ test('Seguridad: valida que ram_tweak.sh esté 100% libre de propiedades no perm
     const fileContent = fs.readFileSync('ax_module/scripts/ram_tweak.sh', 'utf-8');
     const fileResult = validateScriptSecurity(fileContent);
     assert.equal(fileResult.isValid, true, 'El archivo físico ram_tweak.sh no debe contener persist.sys');
+    assert.ok(fileContent.includes('freeze_background_apps'), 'ram_tweak.sh debe incluir freeze_background_apps');
+    assert.ok(fileContent.includes('kill -STOP'), 'ram_tweak.sh debe usar SIGSTOP para pausar apps');
+    assert.ok(fileContent.includes('kill -CONT'), 'ram_tweak.sh debe usar SIGCONT para reanudar apps');
   }
 });
 
@@ -81,6 +84,16 @@ test('Seguridad: valida que touch_boost.sh y surface_tweak.sh estén 100% libres
   const touchScript = MODULE_SCRIPTS.find(s => s.name === 'touch_boost.sh');
   assert.ok(touchScript, 'touch_boost.sh debe existir');
   assert.equal(validateScriptSecurity(touchScript.codeSnippet).isValid, true);
+
+  if (fs.existsSync('ax_module/scripts/touch_boost.sh')) {
+    const fileContent = fs.readFileSync('ax_module/scripts/touch_boost.sh', 'utf-8');
+    assert.equal(validateScriptSecurity(fileContent).isValid, true, 'touch_boost.sh no debe contener persist.sys');
+    assert.ok(fileContent.includes('glove_mode'), 'touch_boost.sh debe incluir soporte de Glove Mode');
+    assert.ok(fileContent.includes('impulse'), 'touch_boost.sh debe configurar VelocityTracker strategy impulse');
+    assert.ok(fileContent.includes('scroll_friction'), 'touch_boost.sh debe ajustar view.scroll_friction a 0.005');
+    assert.ok(fileContent.includes('/sys/module/ged/parameters/'), 'touch_boost.sh debe soportar MediaTek GED boost');
+    assert.ok(fileContent.includes('/sys/kernel/fpsgo/'), 'touch_boost.sh debe soportar MediaTek FPSGO boost');
+  }
 
   const surfaceScript = MODULE_SCRIPTS.find(s => s.name === 'surface_tweak.sh');
   assert.ok(surfaceScript, 'surface_tweak.sh debe existir');
