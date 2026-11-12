@@ -4,27 +4,37 @@ Este documento define la trayectoria técnica del módulo y de la plataforma web
 
 ---
 
-## 📌 Estado Actual (Fase 1 - Completada)
+## 📌 Estado Actual (Fase 1 y Fase 2 - Completadas)
 - [x] Arquitectura base del módulo para AX Manager (`module.prop`, `customize.sh`, `service.sh`, `uninstall.sh`).
 - [x] Detección segura de arquitectura dual: 32-bit (`armeabi-v7a`) y 64-bit (`arm64-v8a`).
 - [x] Regla de seguridad auditada: Cero uso de `persist.sys.*`.
-- [x] Implementación completa de `touch_boost.sh` (reducción de timeouts a 250ms, pointer_speed a 7, escaneo de nodos de panel táctil y reversibilidad 100%).
-- [x] WebUI nativo para AxManager (`webroot/index.html`) con llamada segura `ksu.exec`.
-- [x] Botón de empaquetado client-side para descargar el `.zip` en el móvil sin PC.
-- [x] GitHub Action con disparador exclusivamente manual (`workflow_dispatch`).
-- [x] Suite de tests unitarios aprobada (`node:test`).
+- [x] Modo Ultra Sensibilidad Táctil (`touch_boost.sh` con Touch Slop 1px y Zero Backpressure).
+- [x] Modo Batata / Gráficos reducidos exclusivo Android 12+ (`surface_tweak.sh` con anulación de Game Booster).
+- [x] Ultra FPS Engine (`fps_boost.sh` con Latch Unsignaled y afinidad Big Cores Renice -20).
+- [x] **Módulo Anti-Stutter RAM & ZRAM (`ram_tweak.sh`)**:
+  - `swappiness` ajustado a 50 para suprimir picos de compresión ZRAM en combate.
+  - `vfs_cache_pressure` en 50 para retener estructuras de juego en RAM.
+  - `page-cluster` en 0 para lecturas atómicas de 1 página sin ráfagas de retardo.
+  - Detección y advertencia de la "RAM Virtual" lenta en disco flash.
+- [x] **Piso de Frecuencia GPU Mali (`governor_tweak.sh`)**:
+  - Detección de nodos devfreq (`/sys/class/misc/mali0/device/devfreq/*/min_freq` y MediaTek GED).
+  - Perfil **Floor Frequency (400-500 MHz)** para evitar que la GPU baje a 150 MHz con Gráficos Batata.
+  - Perfiles de Rendimiento Máximo, Powersave y Restauración 100% reversible.
+- [x] **GMS Shield (`gms_shield.sh`)**:
+  - Neutralización de telemetría parásita (`AppMeasurement`, `AdIdService`, `Bug Feedback`, `PartnerSetup`).
+  - Google Account Login, Google Play Games y Compras 100% protegidas y funcionales.
+- [x] **Traductor Gráfico ANGLE - OpenGL ES a Vulkan (`angle_tweak.sh`)**:
+  - Requisito estricto de hardware: Validación de Vulkan 1.1+ (`android.hardware.vulkan.version` >= `4198400`).
+  - Bloqueo automático por defecto si el dispositivo tiene Vulkan 1.0 o no tiene Vulkan para evitar pantallas negras.
+  - Inyección de backend ANGLE para Free Fire (`settings put global angle_gl_driver_selection_*`) y juegos pesados.
+  - Sincronización con `useAngle=true` en Game Overlay y restauración 100% limpia.
+- [x] WebUI nativo para AxManager (`webroot/index.html`) con 7 apartados modulares.
+- [x] Empaquetado client-side directo en ZIP para descargar en el móvil sin PC (`zipGenerator.ts`).
+- [x] Suite de tests unitarios aprobada (`node:test`) con 9 tests passing.
 
 ---
 
-## 🚀 Fase 2: Control de Frecuencias y DVFS para Mali (Próxima Fase)
-- [ ] Implementar perfiles de energía en `governor_tweak.sh`:
-  - Perfil **Ahorro de Batería (Powersave)**: Frecuencia GPU mínima para multimedia.
-  - Perfil **Equilibrado (Balanced)**: DVFS dinámico con rampa suave.
-  - Perfil **Rendimiento / Gaming**: Prevención de caídas de frecuencia en juegos pesados.
-- [ ] Escaneo de nodos de GPU sysfs específicos:
-  - `/sys/class/misc/mali0/device/cur_freq` y `max_freq`.
-  - `/sys/devices/platform/13040000.mali/` (Exynos Mali) y nodos MediaTek Dimensity.
-- [ ] Selector de perfiles en el WebUI móvil con botones dedicados.
+## ⚡ Fase 3: Estabilidad de Tasa de Refresco & SurfaceFlinger (Próxima Fase)
 
 ---
 

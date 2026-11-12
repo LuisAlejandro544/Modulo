@@ -7,6 +7,10 @@ import React, { useState } from 'react';
 import { Navbar, ScreenTab } from './components/Navbar';
 import { HomeScreen } from './components/HomeScreen';
 import { FpsScreen } from './components/FpsScreen';
+import { RamScreen } from './components/RamScreen';
+import { GpuGovernorScreen } from './components/GpuGovernorScreen';
+import { AngleScreen } from './components/AngleScreen';
+import { GmsShieldScreen } from './components/GmsShieldScreen';
 import { ScriptsExplorerScreen } from './components/ScriptsExplorerScreen';
 import { ArchitectureScreen } from './components/ArchitectureScreen';
 import { DeployScreen } from './components/DeployScreen';
@@ -35,6 +39,14 @@ export default function App() {
         )}
 
         {activeTab === 'fps' && <FpsScreen />}
+
+        {activeTab === 'ram' && <RamScreen />}
+
+        {activeTab === 'governor' && <GpuGovernorScreen />}
+
+        {activeTab === 'angle' && <AngleScreen />}
+
+        {activeTab === 'gms' && <GmsShieldScreen />}
 
         {activeTab === 'scripts' && <ScriptsExplorerScreen />}
 

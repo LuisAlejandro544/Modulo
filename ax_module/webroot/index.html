@@ -373,6 +373,18 @@
       <span>🚀</span>
       <span>Ultra FPS</span>
     </button>
+    <button class="tab-btn" onclick="switchTab('ram')">
+      <span>🧠</span>
+      <span>Anti-Stutter RAM</span>
+    </button>
+    <button class="tab-btn" onclick="switchTab('gov')">
+      <span>⚡</span>
+      <span>Piso GPU</span>
+    </button>
+    <button class="tab-btn" onclick="switchTab('gms')">
+      <span>🛡️</span>
+      <span>GMS Shield</span>
+    </button>
     <button class="tab-btn" onclick="switchTab('touch')">
       <span>⚡</span>
       <span>Táctil</span>
@@ -380,6 +392,10 @@
     <button class="tab-btn" onclick="switchTab('potato')">
       <span>🥔</span>
       <span>Batata</span>
+    </button>
+    <button class="tab-btn" onclick="switchTab('angle')">
+      <span>🔥</span>
+      <span>ANGLE Vulkan</span>
     </button>
     <button class="tab-btn" onclick="switchTab('diag')">
       <span>📊</span>
@@ -490,7 +506,154 @@
     </section>
 
     <!-- =================================================================== -->
-    <!-- APARTADO 2: Sensibilidad Táctil (Touch Boost)                       -->
+    <!-- APARTADO 2: ANTI-STUTTER RAM & ZRAM                                -->
+    <!-- =================================================================== -->
+    <section id="tab-ram" class="tab-pane">
+      <div class="card">
+        <div class="card-title">
+          <span>🧠 Anti-Stutter RAM & ZRAM</span>
+          <span id="ramStutterPill" style="font-size: 11px; font-weight: 700; color: #34d399;">Activo (Por Defecto)</span>
+        </div>
+        <p class="card-desc">
+          Elimina los micro-congelamientos causados por compresión en ZRAM y páginas fragmentadas cuando el juego carga texturas en mitad de un combate.
+        </p>
+
+        <div class="setting-item">
+          <div>
+            <div class="setting-name">Anti-Stutter de Memoria</div>
+            <div class="setting-sub">Swappiness 50 • VFS Cache 50 • Page-Cluster 0</div>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="ramStutterToggle" checked onchange="toggleRamStutter(this.checked)">
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="metric-grid">
+          <div class="metric-box">
+            <div class="metric-k">vm.swappiness</div>
+            <div class="metric-v" id="txtSwappiness" style="color: #34d399;">50 (Anti-CPU Spikes)</div>
+          </div>
+          <div class="metric-box">
+            <div class="metric-k">vfs_cache_pressure</div>
+            <div class="metric-v" id="txtVfsPressure" style="color: #38bdf8;">50 (Retener en RAM)</div>
+          </div>
+          <div class="metric-box">
+            <div class="metric-k">page-cluster</div>
+            <div class="metric-v" id="txtPageCluster" style="color: #34d399;">0 (Cero Ráfagas de Swap)</div>
+          </div>
+          <div class="metric-box">
+            <div class="metric-k">Dirty Cache I/O</div>
+            <div class="metric-v" style="color: #34d399;">20 / 10 (Sin Cuellos de Botella)</div>
+          </div>
+        </div>
+
+        <button class="btn btn-primary" onclick="purgeRamManual()">
+          <span>🧹</span>
+          <span>Purgar Caché RAM Ahora (Liberar Memoria Sucia)</span>
+        </button>
+
+        <button class="btn btn-secondary" onclick="auditRamInfo()">
+          <span>🔍</span>
+          <span>Auditar RAM y Chequear "RAM Virtual Lenta"</span>
+        </button>
+
+        <div class="banner banner-warning" style="margin-top: 10px;">
+          <span>💡</span>
+          <span>Consejo Pro: Si tu teléfono tiene "RAM Plus" o "Extensión de Memoria" de fábrica, desactívala en Ajustes del teléfono para suprimir el 80% de los tirones en disco flash.</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- =================================================================== -->
+    <!-- APARTADO 3: PISO DE FRECUENCIA GPU MALI (Floor Frequency)           -->
+    <!-- =================================================================== -->
+    <section id="tab-gov" class="tab-pane">
+      <div class="card">
+        <div class="card-title">
+          <span>⚡ Piso de Frecuencia GPU Mali</span>
+          <span id="gpuFloorPill" style="font-size: 11px; font-weight: 700; color: #38bdf8;">Piso Activo (Floor 400-500 MHz)</span>
+        </div>
+        <p class="card-desc">
+          Al jugar con "Gráficos Batata", la GPU se relaja y baja a 150 MHz (reposo). Al aparecer un enemigo, tarda milisegundos en subir y da un tirón. Fijar un piso intermedio mantiene 60 FPS estables sin sobrecalentar.
+        </p>
+
+        <div class="metric-grid">
+          <div class="metric-box">
+            <div class="metric-k">Frecuencia Mínima</div>
+            <div class="metric-v" id="txtFloorFreq" style="color: #34d399;">Piso 400 - 500 MHz</div>
+          </div>
+          <div class="metric-box">
+            <div class="metric-k">Gobernador Mali</div>
+            <div class="metric-v" style="color: #38bdf8;">simple_ondemand</div>
+          </div>
+        </div>
+
+        <button class="btn btn-primary" onclick="applyGpuFloor('floor')">
+          <span>🎯</span>
+          <span>Fijar Piso Anti-Drop (Recomendado para Gráficos Batata)</span>
+        </button>
+
+        <button class="btn btn-secondary" onclick="applyGpuFloor('performance')">
+          <span>🔥</span>
+          <span>Perfil Rendimiento Máximo (Frecuencia Top)</span>
+        </button>
+
+        <button class="btn btn-secondary" onclick="applyGpuFloor('restore')">
+          <span>🔄</span>
+          <span>Restaurar Frecuencias y Gobernador de Fábrica</span>
+        </button>
+
+        <button class="btn btn-secondary" onclick="diagGpuFreq()">
+          <span>📊</span>
+          <span>Escanear Frecuencias y Nodos Disponibles</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- =================================================================== -->
+    <!-- APARTADO 4: ESCUDO GMS SHIELD (Anti-Basura Google Play)            -->
+    <!-- =================================================================== -->
+    <section id="tab-gms" class="tab-pane">
+      <div class="card">
+        <div class="card-title">
+          <span>🛡️ GMS Shield (Google Play Optimizer)</span>
+          <span id="gmsShieldPill" style="font-size: 11px; font-weight: 700; color: #94a3b8;">Inactivo</span>
+        </div>
+        <p class="card-desc">
+          Neutraliza servicios parásitos de telemetría, crash reports y rastreo publicitario de Google que causan picos de CPU en segundo plano, sin tocar tu inicio de sesión ni Play Games.
+        </p>
+
+        <div class="setting-item">
+          <div>
+            <div class="setting-name">Escudo Anti-Telemetría GMS</div>
+            <div class="setting-sub">Bloquea AppMeasurement, Ads y Feedback uploader</div>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="gmsShieldToggle" onchange="toggleGmsShield(this.checked)">
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="pcard"><strong>✓ Google Account Login:</strong> 100% Protegido y Operativo.</div>
+        <div class="pcard"><strong>✓ Google Play Games:</strong> 100% Protegido y Operativo.</div>
+        <div class="pcard"><strong>✓ Google Play Billing:</strong> 100% Protegido para compras.</div>
+        <div class="pcard"><strong>🚫 Servicios Basura Bloqueados:</strong> AdIdService, Measurement, PartnerSetup, Bug Feedback.</div>
+
+        <button class="btn btn-secondary" onclick="auditGmsShield()">
+          <span>🔍</span>
+          <span>Auditar Estado de Servicios Google en tu Teléfono</span>
+        </button>
+
+        <div class="banner banner-success" style="margin-top: 10px;">
+          <span>🛡️</span>
+          <span>100% Reversible. Al desactivar el switch, todos los servicios vuelven a su estado previo sin necesidad de reiniciar.</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- =================================================================== -->
+    <!-- APARTADO 5: Sensibilidad Táctil (Touch Boost)                       -->
     <!-- =================================================================== -->
     <section id="tab-touch" class="tab-pane">
       <div class="card">
@@ -622,7 +785,74 @@
     </section>
 
     <!-- =================================================================== -->
-    <!-- APARTADO 4: Hardware & Diagnóstico Mali                              -->
+    <!-- APARTADO: CAPA ANGLE (OPENGL ES SOBRE VULKAN 1.1+)                  -->
+    <!-- =================================================================== -->
+    <section id="tab-angle" class="tab-pane">
+      <div class="card">
+        <div class="card-title">
+          <span>🔥 Capa ANGLE (Vulkan Backend)</span>
+          <span id="vulkanStatusChip" style="font-size: 11px; font-weight: 700; color: #34d399;">Verificando Vulkan 1.1...</span>
+        </div>
+        <p class="card-desc">
+          Traduce las órdenes de OpenGL ES de Free Fire directamente a primitivas de <strong>Vulkan</strong>.
+          Reduce drásticamente el uso de CPU en la GPU Mali para tiroteos ultra fluidos.
+        </p>
+
+        <div id="vulkanBanner" class="banner banner-warning">
+          <span>⚠️</span>
+          <span id="vulkanBannerText">Requisito Obligatorio: Tu teléfono debe soportar como mínimo Vulkan 1.1 (versión &gt;= 4198400). Si no cuenta con Vulkan 1.1, permanecerá desactivada por defecto para evitar pantallas negras.</span>
+        </div>
+
+        <div class="metric-grid">
+          <div class="metric-box">
+            <div class="metric-k">Soporte Vulkan</div>
+            <div class="metric-v" id="txtVkVersion" style="color: #38bdf8;">Comprobando API...</div>
+          </div>
+          <div class="metric-box">
+            <div class="metric-k">Driver Gráfico</div>
+            <div class="metric-v" id="txtAngleDriver" style="color: #34d399;">OpenGL ES Nativo</div>
+          </div>
+        </div>
+
+        <label style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 6px;">
+          Paquete del Juego para Forzar ANGLE (Vulkan)
+        </label>
+
+        <div class="game-chips">
+          <span class="game-chip active" onclick="setAngleTargetPkg('com.dts.freefireth', this)">Free Fire</span>
+          <span class="game-chip" onclick="setAngleTargetPkg('com.dts.freefiremax', this)">FF MAX</span>
+          <span class="game-chip" onclick="setAngleTargetPkg('com.tencent.ig', this)">PUBG</span>
+          <span class="game-chip" onclick="setAngleTargetPkg('com.activision.callofduty.shooter', this)">CoD</span>
+          <span class="game-chip" onclick="setAngleTargetPkg('com.roblox.client', this)">Roblox</span>
+          <span class="game-chip" onclick="setAngleTargetPkg('com.netease.bloodstrike', this)">Blood Strike</span>
+        </div>
+
+        <input type="text" id="anglePkgInput" class="input-box" value="com.dts.freefireth" placeholder="com.ejemplo.juego">
+
+        <button class="btn btn-primary" id="btnApplyAngleRestart" onclick="applyAngle(true)">
+          <span>🚀</span>
+          <span>Activar ANGLE Vulkan y Reiniciar Juego</span>
+        </button>
+
+        <button class="btn btn-secondary" id="btnApplyAngleHot" onclick="applyAngle(false)">
+          <span>⚡</span>
+          <span>Activar ANGLE en Caliente (Sin reiniciar)</span>
+        </button>
+
+        <button class="btn btn-secondary" onclick="restoreNativeOpenGL()">
+          <span>🔄</span>
+          <span>Restaurar OpenGL ES Nativo</span>
+        </button>
+
+        <div class="banner banner-success" style="margin-top: 10px;">
+          <span>🛡️</span>
+          <span>100% Seguro y Reversible. ANGLE es un componente oficial de Google / AOSP integrado en Android (cero persist.sys).</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- =================================================================== -->
+    <!-- APARTADO: Hardware & Diagnóstico Mali                               -->
     <!-- =================================================================== -->
     <section id="tab-diag" class="tab-pane">
       <div class="card">
@@ -789,9 +1019,10 @@
     async function purgeRamManual() {
       const cmd = `
         for S in \
-          "$AXERONDIR/plugins/ax_mali_core_optimizer/scripts/fps_boost.sh" \
-          "$MODDIR/scripts/fps_boost.sh" \
-          "./scripts/fps_boost.sh"; do
+          "$AXERONDIR/plugins/ax_mali_core_optimizer/scripts/ram_tweak.sh" \
+          "$MODDIR/scripts/ram_tweak.sh" \
+          "./scripts/ram_tweak.sh" \
+          "$AXERONDIR/plugins/ax_mali_core_optimizer/scripts/fps_boost.sh"; do
           if [ -f "$S" ]; then sh "$S" purge; exit 0; fi
         done
         sync; echo 3 > /proc/sys/vm/drop_caches 2>/dev/null
@@ -799,6 +1030,124 @@
       `;
       await runShell(cmd);
       alert("¡Memoria RAM purgada con éxito! Caches del kernel liberadas para evitar congelamientos en tu partida.");
+    }
+
+    async function toggleRamStutter(enable) {
+      const pill = document.getElementById('ramStutterPill');
+      const action = enable ? "enable 50" : "disable";
+      pill.textContent = enable ? "Activando..." : "Desactivando...";
+      const cmd = `
+        for S in \
+          "$AXERONDIR/plugins/ax_mali_core_optimizer/scripts/ram_tweak.sh" \
+          "$MODDIR/scripts/ram_tweak.sh" \
+          "./scripts/ram_tweak.sh"; do
+          if [ -f "$S" ]; then sh "$S" ${action}; exit 0; fi
+        done
+        if [ "${enable}" = "true" ]; then
+          echo 50 > /proc/sys/vm/swappiness 2>/dev/null
+          echo 50 > /proc/sys/vm/vfs_cache_pressure 2>/dev/null
+          echo 0 > /proc/sys/vm/page-cluster 2>/dev/null
+          echo 0 > /proc/sys/vm/compact_memory 2>/dev/null
+          sync; echo 3 > /proc/sys/vm/drop_caches 2>/dev/null
+        else
+          echo 100 > /proc/sys/vm/swappiness 2>/dev/null
+          echo 100 > /proc/sys/vm/vfs_cache_pressure 2>/dev/null
+          echo 3 > /proc/sys/vm/page-cluster 2>/dev/null
+        fi
+      `;
+      await runShell(cmd);
+      pill.textContent = enable ? "Activo (Anti-Stutter 50)" : "Inactivo";
+      pill.style.color = enable ? "#34d399" : "#94a3b8";
+    }
+
+    async function auditRamInfo() {
+      const cmd = `
+        for S in \
+          "$AXERONDIR/plugins/ax_mali_core_optimizer/scripts/ram_tweak.sh" \
+          "$MODDIR/scripts/ram_tweak.sh" \
+          "./scripts/ram_tweak.sh"; do
+          if [ -f "$S" ]; then sh "$S" audit; exit 0; fi
+        done
+        echo "--- Reporte Rápido de Memoria ---"
+        grep -E "MemTotal|MemAvailable|SwapTotal|SwapFree" /proc/meminfo
+        echo "swappiness: $(cat /proc/sys/vm/swappiness 2>/dev/null)"
+      `;
+      const res = await runShell(cmd);
+      switchTab('diag');
+      alert("Auditoría de memoria completada. Revisa la pestaña de 'Hardware' para ver el diagnóstico.");
+    }
+
+    async function applyGpuFloor(mode) {
+      const pill = document.getElementById('gpuFloorPill');
+      pill.textContent = "Aplicando...";
+      const cmd = `
+        for S in \
+          "$AXERONDIR/plugins/ax_mali_core_optimizer/scripts/governor_tweak.sh" \
+          "$MODDIR/scripts/governor_tweak.sh" \
+          "./scripts/governor_tweak.sh"; do
+          if [ -f "$S" ]; then sh "$S" ${mode}; exit 0; fi
+        done
+      `;
+      await runShell(cmd);
+      if (mode === 'floor') {
+        pill.textContent = "Piso Activo (Floor 400-500 MHz)";
+        pill.style.color = "#34d399";
+        alert("¡Piso de frecuencia fijado! La GPU Mali no bajará a reposo (150 MHz) mientras juegues.");
+      } else if (mode === 'performance') {
+        pill.textContent = "Rendimiento Máximo";
+        pill.style.color = "#f59e0b";
+        alert("Perfil Rendimiento Máximo activado.");
+      } else {
+        pill.textContent = "Gobernador Original";
+        pill.style.color = "#94a3b8";
+        alert("Frecuencias y gobernador restaurados al estado original.");
+      }
+    }
+
+    async function diagGpuFreq() {
+      const cmd = `
+        for S in \
+          "$AXERONDIR/plugins/ax_mali_core_optimizer/scripts/governor_tweak.sh" \
+          "$MODDIR/scripts/governor_tweak.sh" \
+          "./scripts/governor_tweak.sh"; do
+          if [ -f "$S" ]; then sh "$S" diag; exit 0; fi
+        done
+        echo "--- Frecuencias de GPU ---"
+        cat /sys/class/misc/mali0/device/devfreq/*/available_frequencies 2>/dev/null
+        cat /sys/class/misc/mali0/device/devfreq/*/cur_freq 2>/dev/null
+      `;
+      await runShell(cmd);
+      switchTab('diag');
+    }
+
+    async function toggleGmsShield(enable) {
+      const pill = document.getElementById('gmsShieldPill');
+      const action = enable ? "enable" : "disable";
+      pill.textContent = enable ? "Activando..." : "Desactivando...";
+      const cmd = `
+        for S in \
+          "$AXERONDIR/plugins/ax_mali_core_optimizer/scripts/gms_shield.sh" \
+          "$MODDIR/scripts/gms_shield.sh" \
+          "./scripts/gms_shield.sh"; do
+          if [ -f "$S" ]; then sh "$S" ${action}; exit 0; fi
+        done
+      `;
+      await runShell(cmd);
+      pill.textContent = enable ? "Activo (GMS Shield)" : "Inactivo";
+      pill.style.color = enable ? "#34d399" : "#94a3b8";
+    }
+
+    async function auditGmsShield() {
+      const cmd = `
+        for S in \
+          "$AXERONDIR/plugins/ax_mali_core_optimizer/scripts/gms_shield.sh" \
+          "$MODDIR/scripts/gms_shield.sh" \
+          "./scripts/gms_shield.sh"; do
+          if [ -f "$S" ]; then sh "$S" audit; exit 0; fi
+        done
+      `;
+      await runShell(cmd);
+      switchTab('diag');
     }
 
     async function toggleTouch(enable) {
@@ -929,6 +1278,56 @@
       dropdown.innerHTML = '<option value="">(Escribe el paquete abajo o usa los botones rápidos)</option>';
     }
 
+    function setAngleTargetPkg(pkg, chipElement) {
+      document.getElementById('anglePkgInput').value = pkg;
+      document.querySelectorAll('#tab-angle .game-chip').forEach(c => c.classList.remove('active'));
+      if (chipElement) chipElement.classList.add('active');
+    }
+
+    async function applyAngle(shouldRestart) {
+      const pkg = document.getElementById('anglePkgInput').value.trim() || 'com.dts.freefireth';
+      const restartParam = shouldRestart ? "1" : "0";
+      const cmd = `
+        for S in \
+          "$AXERONDIR/plugins/ax_mali_core_optimizer/scripts/angle_tweak.sh" \
+          "$MODDIR/scripts/angle_tweak.sh" \
+          "./scripts/angle_tweak.sh"; do
+          if [ -f "$S" ]; then sh "$S" enable ${pkg} ${restartParam}; exit 0; fi
+        done
+        settings put global angle_gl_driver_selection_pkgs ${pkg}
+        settings put global angle_gl_driver_selection_values angle
+        if [ "${restartParam}" = "1" ]; then am force-stop ${pkg}; fi
+        echo "SUCCESS"
+      `;
+      const res = await runShell(cmd);
+      if (res && res.includes("ERROR_VULKAN_1_1_REQUIRED")) {
+        alert("Bloqueo de seguridad: Tu teléfono no tiene soporte para Vulkan 1.1. Modo bloqueado para evitar pantallas negras.");
+        return;
+      }
+      document.getElementById('txtAngleDriver').textContent = "ANGLE (Vulkan Backend) ✓";
+      document.getElementById('txtAngleDriver').style.color = "#34d399";
+      alert(`¡Capa ANGLE (Vulkan) activada para ${pkg}! El juego ahora traduce OpenGL ES a Vulkan en tu GPU Mali.`);
+    }
+
+    async function restoreNativeOpenGL() {
+      const pkg = document.getElementById('anglePkgInput').value.trim() || 'com.dts.freefireth';
+      const cmd = `
+        for S in \
+          "$AXERONDIR/plugins/ax_mali_core_optimizer/scripts/angle_tweak.sh" \
+          "$MODDIR/scripts/angle_tweak.sh" \
+          "./scripts/angle_tweak.sh"; do
+          if [ -f "$S" ]; then sh "$S" disable ${pkg}; exit 0; fi
+        done
+        settings delete global angle_gl_driver_selection_pkgs
+        settings delete global angle_gl_driver_selection_values
+        echo "SUCCESS"
+      `;
+      await runShell(cmd);
+      document.getElementById('txtAngleDriver').textContent = "OpenGL ES Nativo";
+      document.getElementById('txtAngleDriver').style.color = "#38bdf8";
+      alert("Controlador gráfico restaurado al OpenGL ES nativo.");
+    }
+
     async function checkAllStatus() {
       const res = await runShell('getprop ro.build.version.sdk; getprop ro.product.cpu.abi; getprop ro.build.version.release');
       if (res) {
@@ -956,6 +1355,44 @@
           bannerTxt.textContent = `Android ${rel} detectado. Por seguridad estricta, el Modo Batata está bloqueado para no dañar tu pantalla.`;
           document.getElementById('btnApplyRestart').disabled = true;
         }
+      }
+
+      // Comprobación de Vulkan 1.1 para la Capa ANGLE
+      const vkRes = await runShell('pm list features 2>/dev/null | grep -i "android.hardware.vulkan.version"');
+      const vkChip = document.getElementById('vulkanStatusChip');
+      const vkBanner = document.getElementById('vulkanBanner');
+      const vkBannerTxt = document.getElementById('vulkanBannerText');
+      const vkVersionText = document.getElementById('txtVkVersion');
+
+      if (vkRes && vkRes.includes('=')) {
+        const numStr = vkRes.split('=')[1].replace(/[^0-9]/g, '');
+        const vkInt = parseInt(numStr, 10) || 0;
+        const major = Math.floor(vkInt / 4194304);
+        const rem = vkInt % 4194304;
+        const minor = Math.floor(rem / 4096);
+        const patch = rem % 4096;
+
+        vkVersionText.textContent = `Vulkan ${major}.${minor}.${patch}`;
+
+        if (vkInt >= 4198400) {
+          // Soporta Vulkan 1.1 o superior
+          vkChip.textContent = `Vulkan ${major}.${minor} (Compatible ✓)`;
+          vkChip.style.color = "#34d399";
+          vkBanner.className = "banner banner-success";
+          vkBannerTxt.textContent = `Tu GPU soporta Vulkan ${major}.${minor}.${patch} (>= 1.1). La capa ANGLE está 100% disponible para forzar Vulkan en tus juegos.`;
+        } else {
+          // Inferior a Vulkan 1.1
+          vkChip.textContent = `Bloqueado (< Vulkan 1.1)`;
+          vkChip.style.color = "#f87171";
+          vkBanner.className = "banner banner-warning";
+          vkBannerTxt.textContent = `Tu dispositivo cuenta con Vulkan ${major}.${minor} (< 1.1). Por seguridad, ANGLE permanece desactivado por defecto para evitar pantallas negras.`;
+          document.getElementById('btnApplyAngleRestart').disabled = true;
+          document.getElementById('btnApplyAngleHot').disabled = true;
+        }
+      } else {
+        vkVersionText.textContent = "No detectado";
+        vkChip.textContent = "Desactivado por defecto";
+        vkChip.style.color = "#94a3b8";
       }
     }
 

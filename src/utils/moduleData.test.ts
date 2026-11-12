@@ -24,18 +24,67 @@ test('Seguridad: valida que fps_boost.sh esté 100% libre de propiedades no perm
   }
 });
 
-test('Seguridad: valida que touch_boost.sh esté 100% libre de propiedades no permitidas', () => {
-  const touchScript = MODULE_SCRIPTS.find(s => s.name === 'touch_boost.sh');
-  assert.ok(touchScript, 'touch_boost.sh debe existir');
-  const result = validateScriptSecurity(touchScript.codeSnippet);
+test('Seguridad: valida que ram_tweak.sh esté 100% libre de propiedades no permitidas', () => {
+  const ramScript = MODULE_SCRIPTS.find(s => s.name === 'ram_tweak.sh');
+  assert.ok(ramScript, 'ram_tweak.sh debe existir');
+  const result = validateScriptSecurity(ramScript.codeSnippet);
   assert.equal(result.isValid, true);
+
+  if (fs.existsSync('ax_module/scripts/ram_tweak.sh')) {
+    const fileContent = fs.readFileSync('ax_module/scripts/ram_tweak.sh', 'utf-8');
+    const fileResult = validateScriptSecurity(fileContent);
+    assert.equal(fileResult.isValid, true, 'El archivo físico ram_tweak.sh no debe contener persist.sys');
+  }
 });
 
-test('Seguridad: valida que surface_tweak.sh (Modo Batata Android 12+) esté 100% libre de propiedades no permitidas', () => {
+test('Seguridad: valida que governor_tweak.sh esté 100% libre de propiedades no permitidas', () => {
+  const govScript = MODULE_SCRIPTS.find(s => s.name === 'governor_tweak.sh');
+  assert.ok(govScript, 'governor_tweak.sh debe existir');
+  const result = validateScriptSecurity(govScript.codeSnippet);
+  assert.equal(result.isValid, true);
+
+  if (fs.existsSync('ax_module/scripts/governor_tweak.sh')) {
+    const fileContent = fs.readFileSync('ax_module/scripts/governor_tweak.sh', 'utf-8');
+    const fileResult = validateScriptSecurity(fileContent);
+    assert.equal(fileResult.isValid, true, 'El archivo físico governor_tweak.sh no debe contener persist.sys');
+  }
+});
+
+test('Seguridad: valida que gms_shield.sh esté 100% libre de propiedades no permitidas', () => {
+  const gmsScript = MODULE_SCRIPTS.find(s => s.name === 'gms_shield.sh');
+  assert.ok(gmsScript, 'gms_shield.sh debe existir');
+  const result = validateScriptSecurity(gmsScript.codeSnippet);
+  assert.equal(result.isValid, true);
+
+  if (fs.existsSync('ax_module/scripts/gms_shield.sh')) {
+    const fileContent = fs.readFileSync('ax_module/scripts/gms_shield.sh', 'utf-8');
+    const fileResult = validateScriptSecurity(fileContent);
+    assert.equal(fileResult.isValid, true, 'El archivo físico gms_shield.sh no debe contener persist.sys');
+  }
+});
+
+test('Seguridad: valida que angle_tweak.sh esté 100% libre de propiedades no permitidas y requiera Vulkan 1.1', () => {
+  const angleScript = MODULE_SCRIPTS.find(s => s.name === 'angle_tweak.sh');
+  assert.ok(angleScript, 'angle_tweak.sh debe existir');
+  const result = validateScriptSecurity(angleScript.codeSnippet);
+  assert.equal(result.isValid, true);
+
+  if (fs.existsSync('ax_module/scripts/angle_tweak.sh')) {
+    const fileContent = fs.readFileSync('ax_module/scripts/angle_tweak.sh', 'utf-8');
+    const fileResult = validateScriptSecurity(fileContent);
+    assert.equal(fileResult.isValid, true, 'El archivo físico angle_tweak.sh no debe contener persist.sys');
+    assert.ok(fileContent.includes('4198400'), 'angle_tweak.sh debe validar el umbral 4198400 (Vulkan 1.1)');
+  }
+});
+
+test('Seguridad: valida que touch_boost.sh y surface_tweak.sh estén 100% libres de propiedades no permitidas', () => {
+  const touchScript = MODULE_SCRIPTS.find(s => s.name === 'touch_boost.sh');
+  assert.ok(touchScript, 'touch_boost.sh debe existir');
+  assert.equal(validateScriptSecurity(touchScript.codeSnippet).isValid, true);
+
   const surfaceScript = MODULE_SCRIPTS.find(s => s.name === 'surface_tweak.sh');
   assert.ok(surfaceScript, 'surface_tweak.sh debe existir');
-  const result = validateScriptSecurity(surfaceScript.codeSnippet);
-  assert.equal(result.isValid, true);
+  assert.equal(validateScriptSecurity(surfaceScript.codeSnippet).isValid, true);
 });
 
 test('Arquitectura: clasifica correctamente 32-bit y 64-bit', () => {
@@ -45,8 +94,8 @@ test('Arquitectura: clasifica correctamente 32-bit y 64-bit', () => {
   assert.equal(classifyAbi('desconocido'), 'unknown');
 });
 
-test('Módulo: contiene los 10 archivos completos incluyendo fps_boost.sh', () => {
-  assert.equal(MODULE_SCRIPTS.length, 10);
+test('Módulo: contiene los 13 archivos modulares completos', () => {
+  assert.equal(MODULE_SCRIPTS.length, 13);
   const names = MODULE_SCRIPTS.map(s => s.name);
   assert.ok(names.includes('fps_boost.sh'));
   assert.ok(names.includes('touch_boost.sh'));
@@ -56,6 +105,9 @@ test('Módulo: contiene los 10 archivos completos incluyendo fps_boost.sh', () =
   assert.ok(names.includes('mali_common.sh'));
   assert.ok(names.includes('detect_gpu.sh'));
   assert.ok(names.includes('governor_tweak.sh'));
+  assert.ok(names.includes('ram_tweak.sh'));
+  assert.ok(names.includes('gms_shield.sh'));
+  assert.ok(names.includes('angle_tweak.sh'));
   assert.ok(names.includes('surface_tweak.sh'));
   assert.ok(names.includes('uninstall.sh'));
 });

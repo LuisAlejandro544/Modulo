@@ -1,7 +1,7 @@
 import React from 'react';
-import { Cpu, Layers, FileCode2, BookOpen, Smartphone, DownloadCloud, Zap } from 'lucide-react';
+import { Cpu, Layers, FileCode2, BookOpen, Smartphone, DownloadCloud, Zap, ShieldAlert, Sliders } from 'lucide-react';
 
-export type ScreenTab = 'home' | 'fps' | 'scripts' | 'arch' | 'deploy';
+export type ScreenTab = 'home' | 'fps' | 'ram' | 'governor' | 'angle' | 'gms' | 'scripts' | 'arch' | 'deploy';
 
 interface NavbarProps {
   activeTab: ScreenTab;
@@ -26,7 +26,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenG
                   v1.3.0
                 </span>
               </div>
-              <p className="text-xs text-slate-400 hidden sm:block">Ultra FPS Engine • AxManager • KernelSU • Magisk</p>
+              <p className="text-xs text-slate-400 hidden sm:block">Ultra FPS • Anti-Stutter RAM • Floor GPU • ANGLE Vulkan • GMS Shield</p>
             </div>
           </div>
 
@@ -34,7 +34,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenG
           <nav className="hidden md:flex items-center gap-1 bg-slate-950/60 p-1.5 rounded-xl border border-slate-800">
             <button
               onClick={() => setActiveTab('home')}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                 activeTab === 'home'
                   ? 'bg-cyan-600 text-white shadow-sm'
                   : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
@@ -46,7 +46,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenG
 
             <button
               onClick={() => setActiveTab('fps')}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                 activeTab === 'fps'
                   ? 'bg-emerald-600 text-white shadow-sm'
                   : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
@@ -57,20 +57,68 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenG
             </button>
 
             <button
+              onClick={() => setActiveTab('ram')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                activeTab === 'ram'
+                  ? 'bg-emerald-600 text-white shadow-sm'
+                  : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+              }`}
+            >
+              <Sliders className="w-4 h-4 text-emerald-400" />
+              <span>RAM Anti-Stutter</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('governor')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                activeTab === 'governor'
+                  ? 'bg-cyan-600 text-white shadow-sm'
+                  : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+              }`}
+            >
+              <Zap className="w-4 h-4 text-cyan-400" />
+              <span>Piso GPU</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('angle')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                activeTab === 'angle'
+                  ? 'bg-purple-600 text-white shadow-sm'
+                  : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+              }`}
+            >
+              <Layers className="w-4 h-4 text-purple-400" />
+              <span>ANGLE Vulkan</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('gms')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                activeTab === 'gms'
+                  ? 'bg-indigo-600 text-white shadow-sm'
+                  : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+              }`}
+            >
+              <ShieldAlert className="w-4 h-4 text-indigo-400" />
+              <span>GMS Shield</span>
+            </button>
+
+            <button
               onClick={() => setActiveTab('scripts')}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                 activeTab === 'scripts'
                   ? 'bg-cyan-600 text-white shadow-sm'
                   : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
               }`}
             >
               <FileCode2 className="w-4 h-4" />
-              <span>Scripts & Táctil</span>
+              <span>Scripts</span>
             </button>
 
             <button
               onClick={() => setActiveTab('arch')}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                 activeTab === 'arch'
                   ? 'bg-cyan-600 text-white shadow-sm'
                   : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
@@ -82,14 +130,14 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenG
 
             <button
               onClick={() => setActiveTab('deploy')}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                 activeTab === 'deploy'
                   ? 'bg-cyan-600 text-white shadow-sm'
                   : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
               }`}
             >
               <DownloadCloud className="w-4 h-4" />
-              <span>Empaquetado & ZIP</span>
+              <span>ZIP & WebUI</span>
             </button>
           </nav>
 
@@ -107,10 +155,10 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenG
         </div>
 
         {/* Barra de pestañas móvil con scroll horizontal */}
-        <div className="flex md:hidden items-center justify-between py-2 border-t border-slate-800/80 gap-1 overflow-x-auto">
+        <div className="flex md:hidden items-center py-2 border-t border-slate-800/80 gap-1 overflow-x-auto">
           <button
             onClick={() => setActiveTab('home')}
-            className={`flex flex-col items-center py-1 px-2 rounded-lg text-[10px] font-medium transition shrink-0 ${
+            className={`flex flex-col items-center py-1 px-2.5 rounded-lg text-[10px] font-medium transition shrink-0 ${
               activeTab === 'home' ? 'text-cyan-400 font-semibold' : 'text-slate-400'
             }`}
           >
@@ -119,7 +167,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenG
           </button>
           <button
             onClick={() => setActiveTab('fps')}
-            className={`flex flex-col items-center py-1 px-2 rounded-lg text-[10px] font-medium transition shrink-0 ${
+            className={`flex flex-col items-center py-1 px-2.5 rounded-lg text-[10px] font-medium transition shrink-0 ${
               activeTab === 'fps' ? 'text-emerald-400 font-semibold' : 'text-slate-400'
             }`}
           >
@@ -127,8 +175,44 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenG
             <span>Ultra FPS</span>
           </button>
           <button
+            onClick={() => setActiveTab('ram')}
+            className={`flex flex-col items-center py-1 px-2.5 rounded-lg text-[10px] font-medium transition shrink-0 ${
+              activeTab === 'ram' ? 'text-emerald-400 font-semibold' : 'text-slate-400'
+            }`}
+          >
+            <Sliders className="w-4 h-4 mb-0.5 text-emerald-400" />
+            <span>Anti-Stutter RAM</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('governor')}
+            className={`flex flex-col items-center py-1 px-2.5 rounded-lg text-[10px] font-medium transition shrink-0 ${
+              activeTab === 'governor' ? 'text-cyan-400 font-semibold' : 'text-slate-400'
+            }`}
+          >
+            <Zap className="w-4 h-4 mb-0.5 text-cyan-400" />
+            <span>Piso GPU</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('angle')}
+            className={`flex flex-col items-center py-1 px-2.5 rounded-lg text-[10px] font-medium transition shrink-0 ${
+              activeTab === 'angle' ? 'text-purple-400 font-semibold' : 'text-slate-400'
+            }`}
+          >
+            <Layers className="w-4 h-4 mb-0.5 text-purple-400" />
+            <span>ANGLE</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('gms')}
+            className={`flex flex-col items-center py-1 px-2.5 rounded-lg text-[10px] font-medium transition shrink-0 ${
+              activeTab === 'gms' ? 'text-indigo-400 font-semibold' : 'text-slate-400'
+            }`}
+          >
+            <ShieldAlert className="w-4 h-4 mb-0.5 text-indigo-400" />
+            <span>GMS Shield</span>
+          </button>
+          <button
             onClick={() => setActiveTab('scripts')}
-            className={`flex flex-col items-center py-1 px-2 rounded-lg text-[10px] font-medium transition shrink-0 ${
+            className={`flex flex-col items-center py-1 px-2.5 rounded-lg text-[10px] font-medium transition shrink-0 ${
               activeTab === 'scripts' ? 'text-cyan-400 font-semibold' : 'text-slate-400'
             }`}
           >
@@ -137,7 +221,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenG
           </button>
           <button
             onClick={() => setActiveTab('arch')}
-            className={`flex flex-col items-center py-1 px-2 rounded-lg text-[10px] font-medium transition shrink-0 ${
+            className={`flex flex-col items-center py-1 px-2.5 rounded-lg text-[10px] font-medium transition shrink-0 ${
               activeTab === 'arch' ? 'text-cyan-400 font-semibold' : 'text-slate-400'
             }`}
           >
@@ -146,7 +230,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenG
           </button>
           <button
             onClick={() => setActiveTab('deploy')}
-            className={`flex flex-col items-center py-1 px-2 rounded-lg text-[10px] font-medium transition shrink-0 ${
+            className={`flex flex-col items-center py-1 px-2.5 rounded-lg text-[10px] font-medium transition shrink-0 ${
               activeTab === 'deploy' ? 'text-cyan-400 font-semibold' : 'text-slate-400'
             }`}
           >

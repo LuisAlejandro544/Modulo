@@ -1,5 +1,5 @@
 import React from 'react';
-import { Cpu, ShieldCheck, CheckCircle2, FileCode2, ArrowRight, Zap, DownloadCloud, Sparkles, Sliders } from 'lucide-react';
+import { Cpu, ShieldCheck, CheckCircle2, FileCode2, ArrowRight, Zap, DownloadCloud, Sparkles, Sliders, Layers } from 'lucide-react';
 import { ScreenTab } from './Navbar';
 
 interface HomeScreenProps {
@@ -126,6 +126,125 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, onOpenGuide 
             <div className="flex items-center justify-between gap-4 text-slate-400">
               <span>Juegos Compatibles:</span>
               <span className="text-cyan-400 font-bold font-mono">Free Fire, FF Max, CoD</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* NUEVA SECCIÓN: Solución Integral de Tirones & Bloqueo de Basura GMS */}
+      <section className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-extrabold text-white flex items-center gap-2">
+              <span>🛠️ Nuevas Optimizaciones Anti-Tirones</span>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800/60 font-mono">
+                Nuevos Módulos
+              </span>
+            </h2>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Tecnología para erradicar los micro-congelamientos de RAM, mantener el reloj de la GPU Mali despierto y bloquear telemetría parásita.
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Card 1: Anti-Stutter RAM */}
+          <div
+            onClick={() => onNavigate('ram')}
+            className="group cursor-pointer bg-slate-900/80 border border-slate-800 hover:border-emerald-500/50 p-5 rounded-xl transition flex flex-col justify-between space-y-3"
+          >
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="p-2 rounded-lg bg-emerald-950 text-emerald-400 border border-emerald-800/50">
+                  <Sliders className="w-4 h-4" />
+                </span>
+                <span className="text-[11px] font-mono text-emerald-400 font-bold">ram_tweak.sh</span>
+              </div>
+              <h3 className="font-bold text-white text-sm group-hover:text-emerald-400 transition">
+                Anti-Stutter RAM & ZRAM
+              </h3>
+              <p className="text-xs text-slate-300 mt-1 leading-relaxed">
+                Reduce el swappiness a 50 y ajusta vfs_cache_pressure a 50. Evita que la CPU se congele comprimiendo memoria en ZRAM durante tiroteos.
+              </p>
+            </div>
+            <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs text-emerald-400 font-medium">
+              <span>Configurar Swappiness</span>
+              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition" />
+            </div>
+          </div>
+
+          {/* Card 2: Piso de Frecuencia GPU */}
+          <div
+            onClick={() => onNavigate('governor')}
+            className="group cursor-pointer bg-slate-900/80 border border-slate-800 hover:border-cyan-500/50 p-5 rounded-xl transition flex flex-col justify-between space-y-3"
+          >
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="p-2 rounded-lg bg-cyan-950 text-cyan-400 border border-cyan-800/50">
+                  <Zap className="w-4 h-4" />
+                </span>
+                <span className="text-[11px] font-mono text-cyan-400 font-bold">governor_tweak.sh</span>
+              </div>
+              <h3 className="font-bold text-white text-sm group-hover:text-cyan-400 transition">
+                Piso de Frecuencia GPU Mali
+              </h3>
+              <p className="text-xs text-slate-300 mt-1 leading-relaxed">
+                Fija un piso de 400-500 MHz en devfreq. Evita que la GPU Mali baje a 150 MHz al usar Gráficos Batata, erradicando el tirón al girar cámara.
+              </p>
+            </div>
+            <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs text-cyan-400 font-medium">
+              <span>Controlar Floor Freq</span>
+              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition" />
+            </div>
+          </div>
+
+          {/* Card 3: ANGLE Vulkan */}
+          <div
+            onClick={() => onNavigate('angle')}
+            className="group cursor-pointer bg-slate-900/80 border border-slate-800 hover:border-purple-500/50 p-5 rounded-xl transition flex flex-col justify-between space-y-3"
+          >
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="p-2 rounded-lg bg-purple-950 text-purple-400 border border-purple-800/50">
+                  <Layers className="w-4 h-4" />
+                </span>
+                <span className="text-[11px] font-mono text-purple-400 font-bold">angle_tweak.sh</span>
+              </div>
+              <h3 className="font-bold text-white text-sm group-hover:text-purple-400 transition">
+                ANGLE (OpenGL → Vulkan)
+              </h3>
+              <p className="text-xs text-slate-300 mt-1 leading-relaxed">
+                Traduce OpenGL ES a Vulkan para Free Fire. Requiere Vulkan 1.1 o se bloquea automáticamente por seguridad.
+              </p>
+            </div>
+            <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs text-purple-400 font-medium">
+              <span>Configurar ANGLE</span>
+              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition" />
+            </div>
+          </div>
+
+          {/* Card 4: GMS Shield */}
+          <div
+            onClick={() => onNavigate('gms')}
+            className="group cursor-pointer bg-slate-900/80 border border-slate-800 hover:border-indigo-500/50 p-5 rounded-xl transition flex flex-col justify-between space-y-3"
+          >
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="p-2 rounded-lg bg-indigo-950 text-indigo-400 border border-indigo-800/50">
+                  <ShieldCheck className="w-4 h-4" />
+                </span>
+                <span className="text-[11px] font-mono text-indigo-400 font-bold">gms_shield.sh</span>
+              </div>
+              <h3 className="font-bold text-white text-sm group-hover:text-indigo-400 transition">
+                GMS Shield Anti-Basura
+              </h3>
+              <p className="text-xs text-slate-300 mt-1 leading-relaxed">
+                Neutraliza telemetría, crash reports y ad tracking de Google Play Services sin tocar tu login con Google ni tus partidas de Play Games.
+              </p>
+            </div>
+            <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs text-indigo-400 font-medium">
+              <span>Activar Escudo</span>
+              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition" />
             </div>
           </div>
         </div>

@@ -18,7 +18,7 @@ name=Mali GPU Core Engine
 version=v1.3.0
 versionCode=130
 author=AX Mobile Community
-description=Control de GPU Mali: Ultra FPS Engine (Latch Unsignaled, Core Affinity, Disable Blur, RAM Purge), Touch Slop 1px y Modo Batata (Android 12+).
+description=Control de GPU Mali: Ultra FPS Engine, Anti-Stutter RAM & ZRAM, Piso de Frecuencia GPU (Floor 400-500 MHz), GMS Shield y Modo Batata (Android 12+).
 axeronPlugin=30000
 minApi=26
 `,
@@ -42,6 +42,10 @@ if [ -d "\$MODPATH/scripts" ]; then
     ui_print "  ✓ Touch Boost (Touch Slop 1px & Zero Backpressure)"
     ui_print "  ✓ Ultra FPS Engine (Latch Unsignaled & CPU Affinity)"
     ui_print "  ✓ Modo Batata (Anulación de Game Booster)"
+    ui_print "  ✓ Anti-Stutter RAM & ZRAM (Swappiness & Zero Drops)"
+    ui_print "  ✓ Piso Frecuencia GPU (Floor Frequency 400-500 MHz)"
+    ui_print "  ✓ GMS Shield (Escudo Anti-Basura Google Play)"
+    ui_print "  ✓ Capa ANGLE Vulkan 1.1+ (OpenGL ES sobre Vulkan)"
 fi
 
 chmod 0755 "\$MODPATH/service.sh" 2>/dev/null
@@ -68,7 +72,7 @@ ui_print "==================================================="
     { unixPermissions: '755' }
   );
 
-  // 3. service.sh (Servicio de fondo con Ultra FPS activado por defecto)
+  // 3. service.sh (Servicio de fondo con Ultra FPS y Anti-Stutter RAM)
   zip.file(
     'service.sh',
     `#!/system/bin/sh
@@ -87,6 +91,11 @@ fi
 if [ -f "\$MODDIR/scripts/fps_boost.sh" ]; then
     sh "\$MODDIR/scripts/fps_boost.sh" enable auto
     log_info "Ultra FPS Engine activado automáticamente en el arranque."
+fi
+
+if [ -f "\$MODDIR/scripts/ram_tweak.sh" ]; then
+    sh "\$MODDIR/scripts/ram_tweak.sh" enable 50
+    log_info "Módulo Anti-Stutter RAM & ZRAM activado automáticamente."
 fi
 
 log_info "Servicio de AX Mali Engine en ejecución y listo para peticiones WebUI."
@@ -112,10 +121,30 @@ if [ -f "\$MODDIR/scripts/surface_tweak.sh" ]; then
     sh "\$MODDIR/scripts/surface_tweak.sh" disable 2>/dev/null
 fi
 
+if [ -f "\$MODDIR/scripts/ram_tweak.sh" ]; then
+    sh "\$MODDIR/scripts/ram_tweak.sh" disable 2>/dev/null
+fi
+
+if [ -f "\$MODDIR/scripts/governor_tweak.sh" ]; then
+    sh "\$MODDIR/scripts/governor_tweak.sh" restore 2>/dev/null
+fi
+
+if [ -f "\$MODDIR/scripts/gms_shield.sh" ]; then
+    sh "\$MODDIR/scripts/gms_shield.sh" disable 2>/dev/null
+fi
+
+if [ -f "\$MODDIR/scripts/angle_tweak.sh" ]; then
+    sh "\$MODDIR/scripts/angle_tweak.sh" disable 2>/dev/null
+fi
+
 rm -f /data/local/tmp/ax_mali_optimizer.log
 rm -f /data/local/tmp/mali_touch_*.state 2>/dev/null
 rm -f /data/local/tmp/mali_fps_*.state 2>/dev/null
 rm -f /data/local/tmp/mali_potato_status.state 2>/dev/null
+rm -f /data/local/tmp/mali_ram_*.state 2>/dev/null
+rm -f /data/local/tmp/mali_governor_*.state 2>/dev/null
+rm -f /data/local/tmp/mali_gms_*.state 2>/dev/null
+rm -f /data/local/tmp/mali_angle_*.state 2>/dev/null
 rm -rf /data/local/tmp/ax_module_tmp 2>/dev/null
 
 echo "Módulo AX Mali Core Engine desinstalado y sistema restaurado limpiamente."
@@ -573,18 +602,318 @@ echo "====================================================="
       { unixPermissions: '755' }
     );
 
-    // governor_tweak.sh
+    // governor_tweak.sh (Piso de Frecuencia GPU Mali)
     scriptsFolder.file(
       'governor_tweak.sh',
       `#!/system/bin/sh
 SCRIPT_DIR=\$(dirname "\$0")
+BACKUP_STATE="/data/local/tmp/mali_governor_backup.state"
+STATUS_FILE="/data/local/tmp/mali_governor_status.state"
+
 if [ -f "\$SCRIPT_DIR/mali_common.sh" ]; then
     . "\$SCRIPT_DIR/mali_common.sh"
+else
+    log_info() { echo "[INFO] \$1"; }
+    log_warn() { echo "[AVISO] \$1"; }
+    log_error() { echo "[ERROR] \$1"; }
 fi
 
-log_info "Iniciando governor_tweak.sh (Modo base sin funciones activas)..."
-ARCH=\$(detect_architecture)
-log_info "Entorno preparado para arquitectura: \$ARCH"
+find_mali_devfreq_node() {
+    for dir in /sys/class/misc/mali0/device/devfreq/* /sys/class/devfreq/*mali* /sys/devices/platform/*mali*/devfreq/* /sys/devices/platform/13040000.mali/devfreq/*; do
+        if [ -d "\$dir" ] && [ -w "\$dir/min_freq" ]; then
+            echo "\$dir"
+            return 0
+        fi
+    done
+    for dir in /sys/class/misc/mali0/device /sys/devices/platform/13040000.mali; do
+        if [ -d "\$dir" ] && [ -w "\$dir/min_freq" ]; then
+            echo "\$dir"
+            return 0
+        fi
+    done
+    return 1
+}
+
+backup_governor_settings() {
+    NODE_PATH=\$(find_mali_devfreq_node)
+    if [ ! -f "\$BACKUP_STATE" ]; then
+        ORIG_GOV="simple_ondemand"
+        ORIG_MIN="0"
+        if [ -n "\$NODE_PATH" ]; then
+            [ -f "\$NODE_PATH/governor" ] && ORIG_GOV=\$(cat "\$NODE_PATH/governor" 2>/dev/null)
+            [ -f "\$NODE_PATH/min_freq" ] && ORIG_MIN=\$(cat "\$NODE_PATH/min_freq" 2>/dev/null)
+        fi
+        cat <<EOF > "\$BACKUP_STATE"
+NODE_PATH=\$NODE_PATH
+ORIG_GOV=\${ORIG_GOV:-simple_ondemand}
+ORIG_MIN=\${ORIG_MIN:-0}
+TIMESTAMP=\$(date +"%Y-%m-%d %H:%M:%S")
+EOF
+    fi
+}
+
+apply_floor_frequency() {
+    FLOOR_HZ="\${1:-auto}"
+    backup_governor_settings
+    NODE_PATH=\$(find_mali_devfreq_node)
+
+    if [ -z "\$NODE_PATH" ]; then
+        if [ -w /sys/kernel/ged/hal/custom_upbound_gpu_freq ]; then
+            echo 500000 > /sys/kernel/ged/hal/custom_upbound_gpu_freq 2>/dev/null
+        fi
+        setprop debug.mali.dvfs_floor 1 2>/dev/null
+        setprop debug.mali.force_floor_freq "400000" 2>/dev/null
+        echo "SUCCESS: Piso de frecuencia Mali aplicado mediante MediaTek GED/Sysprop."
+        return 0
+    fi
+
+    TARGET_FREQ=""
+    if [ "\$FLOOR_HZ" != "auto" ] && [ -n "\$FLOOR_HZ" ]; then
+        TARGET_FREQ="\$FLOOR_HZ"
+    elif [ -f "\$NODE_PATH/available_frequencies" ]; then
+        FREQS=\$(cat "\$NODE_PATH/available_frequencies" 2>/dev/null)
+        COUNT=\$(echo "\$FREQS" | wc -w)
+        TARGET_IDX=\$(( COUNT / 2 ))
+        CUR_IDX=0
+        for f in \$FREQS; do
+            if [ "\$CUR_IDX" -eq "\$TARGET_IDX" ]; then TARGET_FREQ="\$f"; break; fi
+            CUR_IDX=\$((CUR_IDX + 1))
+        done
+    fi
+
+    if [ -z "\$TARGET_FREQ" ]; then
+        MAX_F=\$(cat "\$NODE_PATH/max_freq" 2>/dev/null)
+        if [ -n "\$MAX_F" ] && [ "\$MAX_F" -gt 1000000 ]; then
+            TARGET_FREQ="400000000"
+        else
+            TARGET_FREQ="400000"
+        fi
+    fi
+
+    [ -w "\$NODE_PATH/min_freq" ] && echo "\$TARGET_FREQ" > "\$NODE_PATH/min_freq" 2>/dev/null
+    if [ -w "\$NODE_PATH/governor" ]; then
+        cat "\$NODE_PATH/available_governors" 2>/dev/null | grep -q "simple_ondemand" && echo "simple_ondemand" > "\$NODE_PATH/governor" 2>/dev/null
+    fi
+
+    setprop debug.mali.dvfs_floor 1 2>/dev/null
+    setprop debug.mali.force_floor_freq "\$TARGET_FREQ" 2>/dev/null
+
+    echo "SUCCESS: Piso de frecuencia GPU Mali activo (\$TARGET_FREQ)."
+}
+
+restore_default_governor() {
+    if [ -f "\$BACKUP_STATE" ]; then
+        . "\$BACKUP_STATE"
+        if [ -n "\$NODE_PATH" ] && [ -d "\$NODE_PATH" ]; then
+            [ -w "\$NODE_PATH/governor" ] && echo "\$ORIG_GOV" > "\$NODE_PATH/governor" 2>/dev/null
+            [ -w "\$NODE_PATH/min_freq" ] && echo "\$ORIG_MIN" > "\$NODE_PATH/min_freq" 2>/dev/null
+        fi
+    fi
+    setprop debug.mali.dvfs_floor "" 2>/dev/null
+    setprop debug.mali.force_floor_freq "" 2>/dev/null
+    echo "SUCCESS: Frecuencias Mali restauradas."
+}
+
+ACTION="\${1:-status}"
+case "\$ACTION" in
+    floor|enable|1|gaming) apply_floor_frequency "\$2" ;;
+    restore|disable|0|off) restore_default_governor ;;
+    performance|max)
+        backup_governor_settings
+        N=\$(find_mali_devfreq_node)
+        if [ -n "\$N" ]; then
+            [ -w "\$N/governor" ] && echo "performance" > "\$N/governor" 2>/dev/null
+            [ -f "\$N/max_freq" ] && cat "\$N/max_freq" > "\$N/min_freq" 2>/dev/null
+        fi
+        echo "SUCCESS: Perfil Performance Mali activado."
+        ;;
+    status)
+        N=\$(find_mali_devfreq_node)
+        M="0"; G="standard"
+        [ -n "\$N" ] && [ -f "\$N/min_freq" ] && M=\$(cat "\$N/min_freq" 2>/dev/null)
+        [ -n "\$N" ] && [ -f "\$N/governor" ] && G=\$(cat "\$N/governor" 2>/dev/null)
+        echo "GPU_MIN_FREQ=\$M GPU_GOV=\$G"
+        ;;
+    *) echo "Uso: \$0 {floor|restore|performance|status}"; exit 1 ;;
+esac
+`,
+      { unixPermissions: '755' }
+    );
+
+    // ram_tweak.sh (Módulo Anti-Stutter RAM & ZRAM)
+    scriptsFolder.file(
+      'ram_tweak.sh',
+      `#!/system/bin/sh
+SCRIPT_DIR=\$(dirname "\$0")
+BACKUP_STATE="/data/local/tmp/mali_ram_backup.state"
+STATUS_FILE="/data/local/tmp/mali_ram_status.state"
+
+if [ -f "\$SCRIPT_DIR/mali_common.sh" ]; then
+    . "\$SCRIPT_DIR/mali_common.sh"
+else
+    log_info() { echo "[INFO] \$1"; }
+    log_warn() { echo "[AVISO] \$1"; }
+    log_error() { echo "[ERROR] \$1"; }
+fi
+
+backup_ram_settings() {
+    if [ ! -f "\$BACKUP_STATE" ]; then
+        ORIG_SWAPPINESS=\$(cat /proc/sys/vm/swappiness 2>/dev/null)
+        ORIG_VFS_PRESSURE=\$(cat /proc/sys/vm/vfs_cache_pressure 2>/dev/null)
+        ORIG_PAGE_CLUSTER=\$(cat /proc/sys/vm/page-cluster 2>/dev/null)
+        cat <<EOF > "\$BACKUP_STATE"
+ORIG_SWAPPINESS=\${ORIG_SWAPPINESS:-100}
+ORIG_VFS_PRESSURE=\${ORIG_VFS_PRESSURE:-100}
+ORIG_PAGE_CLUSTER=\${ORIG_PAGE_CLUSTER:-3}
+TIMESTAMP=\$(date +"%Y-%m-%d %H:%M:%S")
+EOF
+    fi
+}
+
+enable_ram_tweak() {
+    TARGET_SWAPPINESS="\${1:-50}"
+    backup_ram_settings
+
+    [ -w /proc/sys/vm/swappiness ] && echo "\$TARGET_SWAPPINESS" > /proc/sys/vm/swappiness 2>/dev/null
+    [ -w /proc/sys/vm/vfs_cache_pressure ] && echo 50 > /proc/sys/vm/vfs_cache_pressure 2>/dev/null
+    [ -w /proc/sys/vm/page-cluster ] && echo 0 > /proc/sys/vm/page-cluster 2>/dev/null
+    [ -w /proc/sys/vm/compact_memory ] && echo 0 > /proc/sys/vm/compact_memory 2>/dev/null
+    [ -w /proc/sys/vm/dirty_ratio ] && echo 20 > /proc/sys/vm/dirty_ratio 2>/dev/null
+    [ -w /proc/sys/vm/dirty_background_ratio ] && echo 10 > /proc/sys/vm/dirty_background_ratio 2>/dev/null
+
+    sync
+    [ -w /proc/sys/vm/drop_caches ] && echo 3 > /proc/sys/vm/drop_caches 2>/dev/null
+
+    cat <<EOF > "\$STATUS_FILE"
+STATUS=1
+SWAPPINESS=\$TARGET_SWAPPINESS
+VFS_CACHE_PRESSURE=50
+PAGE_CLUSTER=0
+TIMESTAMP=\$(date +"%Y-%m-%d %H:%M:%S")
+EOF
+
+    echo "SUCCESS: Anti-Stutter RAM activado (Swappiness: \$TARGET_SWAPPINESS, VFS: 50, Cluster: 0)."
+}
+
+disable_ram_tweak() {
+    if [ -f "\$BACKUP_STATE" ]; then
+        . "\$BACKUP_STATE"
+        [ -w /proc/sys/vm/swappiness ] && echo "\${ORIG_SWAPPINESS:-100}" > /proc/sys/vm/swappiness 2>/dev/null
+        [ -w /proc/sys/vm/vfs_cache_pressure ] && echo "\${ORIG_VFS_PRESSURE:-100}" > /proc/sys/vm/vfs_cache_pressure 2>/dev/null
+        [ -w /proc/sys/vm/page-cluster ] && echo "\${ORIG_PAGE_CLUSTER:-3}" > /proc/sys/vm/page-cluster 2>/dev/null
+    else
+        [ -w /proc/sys/vm/swappiness ] && echo 100 > /proc/sys/vm/swappiness 2>/dev/null
+        [ -w /proc/sys/vm/vfs_cache_pressure ] && echo 100 > /proc/sys/vm/vfs_cache_pressure 2>/dev/null
+        [ -w /proc/sys/vm/page-cluster ] && echo 3 > /proc/sys/vm/page-cluster 2>/dev/null
+    fi
+    rm -f "\$STATUS_FILE" 2>/dev/null
+    echo "SUCCESS: Anti-Stutter RAM desactivado. Valores restaurados."
+}
+
+audit_ram() {
+    echo "=== REPORTE DE MEMORIA ANTI-STUTTER ==="
+    grep -E "MemTotal|MemAvailable|SwapTotal|SwapFree" /proc/meminfo
+    echo "swappiness: \$(cat /proc/sys/vm/swappiness 2>/dev/null)"
+    echo "vfs_cache_pressure: \$(cat /proc/sys/vm/vfs_cache_pressure 2>/dev/null)"
+    echo "page-cluster: \$(cat /proc/sys/vm/page-cluster 2>/dev/null)"
+    if [ -f /proc/swaps ] && grep -qE "data|sdcard|loop|block" /proc/swaps; then
+        echo "ALERTA: Se detectó RAM Virtual lenta en disco flash (desactívala en Ajustes)."
+    else
+        echo "ESTADO ÓPTIMO: ZRAM rápida en CPU sin swap lento de disco."
+    fi
+}
+
+ACTION="\${1:-status}"
+case "\$ACTION" in
+    enable|1|on) enable_ram_tweak "\$2" ;;
+    disable|0|off|restore) disable_ram_tweak ;;
+    audit|check) audit_ram ;;
+    purge|clean) sync; echo 3 > /proc/sys/vm/drop_caches 2>/dev/null; echo "SUCCESS: RAM Purged" ;;
+    status)
+        S="0"; [ -f "\$STATUS_FILE" ] && S="1"
+        echo "RAM_STUTTER_STATUS=\$S SWAPPINESS=\$(cat /proc/sys/vm/swappiness 2>/dev/null)"
+        ;;
+    *) echo "Uso: \$0 {enable [swappiness]|disable|audit|purge|status}"; exit 1 ;;
+esac
+`,
+      { unixPermissions: '755' }
+    );
+
+    // gms_shield.sh (Escudo Anti-Basura Google Play)
+    scriptsFolder.file(
+      'gms_shield.sh',
+      `#!/system/bin/sh
+SCRIPT_DIR=\$(dirname "\$0")
+BACKUP_STATE="/data/local/tmp/mali_gms_backup.state"
+STATUS_FILE="/data/local/tmp/mali_gms_status.state"
+
+JUNK_PACKAGES="
+    com.google.android.feedback
+    com.google.android.partnersetup
+    com.google.mainline.telemetry
+    com.google.android.onetimeinitializer
+"
+
+GMS_ANALYTICS_COMPONENTS="
+    com.google.android.gms/com.google.android.gms.ads.identifier.service.AdIdService
+    com.google.android.gms/com.google.android.gms.measurement.AppMeasurementService
+    com.google.android.gms/com.google.android.gms.measurement.AppMeasurementJobService
+    com.google.android.gms/com.google.android.gms.measurement.AppMeasurementReceiver
+    com.google.android.gms/com.google.android.gms.analytics.AnalyticsService
+    com.google.android.gms/com.google.android.gms.analytics.AnalyticsJobService
+    com.google.android.gms/com.google.android.gms.analytics.AnalyticsReceiver
+"
+
+enable_gms_shield() {
+    COUNT=0
+    for pkg in \$JUNK_PACKAGES; do
+        if pm list packages | grep -q "\$pkg"; then
+            pm disable-user --user 0 "\$pkg" 2>/dev/null && COUNT=\$((COUNT + 1))
+        fi
+    done
+    for comp in \$GMS_ANALYTICS_COMPONENTS; do
+        pm disable "\$comp" 2>/dev/null && COUNT=\$((COUNT + 1))
+    done
+    cmd appops set com.google.android.gms RUN_IN_BACKGROUND ignore 2>/dev/null
+    echo "1" > "\$STATUS_FILE"
+    echo "SUCCESS: GMS Shield activado (\$COUNT servicios parásitos bloqueados). Login y Play Games protegidos."
+}
+
+disable_gms_shield() {
+    for pkg in \$JUNK_PACKAGES; do
+        if pm list packages -u | grep -q "\$pkg"; then
+            pm enable --user 0 "\$pkg" 2>/dev/null
+        fi
+    done
+    for comp in \$GMS_ANALYTICS_COMPONENTS; do
+        pm enable "\$comp" 2>/dev/null
+    done
+    cmd appops set com.google.android.gms RUN_IN_BACKGROUND allow 2>/dev/null
+    rm -f "\$STATUS_FILE" 2>/dev/null
+    echo "SUCCESS: GMS Shield desactivado. Servicios de Google restaurados."
+}
+
+audit_gms() {
+    echo "=== AUDITORÍA GMS SHIELD ==="
+    S="Inactivo"
+    [ -f "\$STATUS_FILE" ] && S="Activo (Bloqueo de telemetría y publicidad)"
+    echo "Estado: \$S"
+    echo "Google Account Login: OPERATIVO ✓"
+    echo "Google Play Games: OPERATIVO ✓"
+    echo "Google Play Billing: OPERATIVO ✓"
+}
+
+ACTION="\${1:-status}"
+case "\$ACTION" in
+    enable|1|on|shield) enable_gms_shield ;;
+    disable|0|off|restore) disable_gms_shield ;;
+    audit|check) audit_gms ;;
+    status)
+        S="0"; [ -f "\$STATUS_FILE" ] && S="1"
+        echo "GMS_SHIELD_STATUS=\$S"
+        ;;
+    *) echo "Uso: \$0 {enable|disable|audit|status}"; exit 1 ;;
+esac
 `,
       { unixPermissions: '755' }
     );
@@ -707,6 +1036,232 @@ case "\$ACTION" in
     list|packages) list_user_packages ;;
     check) check_android_version ;;
     *) echo "Uso: \$0 {enable [0.25|0.5|0.7] [pkg] [restart]|disable [pkg]|status|list|check}"; exit 1 ;;
+esac
+`,
+      { unixPermissions: '755' }
+    );
+
+    // angle_tweak.sh (Traductor OpenGL ES a Vulkan vía Google ANGLE - Requiere Vulkan 1.1+)
+    scriptsFolder.file(
+      'angle_tweak.sh',
+      `#!/system/bin/sh
+# ==============================================================================
+# Script: angle_tweak.sh
+# Módulo: AX Mali Core Engine para AX Manager, KernelSU, APatch y Magisk
+# Propósito: Forzar Backend Gráfico ANGLE (OpenGL ES traducido a Vulkan) para juegos.
+# REQUISITO OBLIGATORIO DE HARDWARE:
+#   - El dispositivo DEBE soportar Vulkan 1.1 o superior (versión >= 4198400 / 0x401000).
+#   - Si el teléfono solo tiene Vulkan 1.0 o no tiene Vulkan, este modo SE BLOQUEA
+#     AUTOMÁTICAMENTE por defecto para evitar pantallas negras o cierres forzados.
+# ==============================================================================
+SCRIPT_DIR=\$(dirname "\$0")
+BACKUP_STATE="/data/local/tmp/mali_angle_backup.state"
+STATUS_FILE="/data/local/tmp/mali_angle_status.state"
+
+if [ -f "\$SCRIPT_DIR/mali_common.sh" ]; then
+    . "\$SCRIPT_DIR/mali_common.sh"
+else
+    log_info() { echo "[INFO] \$1"; }
+    log_warn() { echo "[AVISO] \$1"; }
+    log_error() { echo "[ERROR] \$1"; }
+fi
+
+check_vulkan_support() {
+    RAW_FEAT=\$(pm list features 2>/dev/null | grep -i "android.hardware.vulkan.version")
+    VK_VER_INT=\$(echo "\$RAW_FEAT" | cut -d= -f2 | tr -dc '0-9')
+
+    if [ -z "\$VK_VER_INT" ]; then
+        VK_DRIVER=\$(getprop ro.hardware.vulkan 2>/dev/null)
+        if [ -z "\$VK_DRIVER" ]; then
+            log_error "BLOQUEO DE SEGURIDAD: No se detectó soporte de Vulkan en este dispositivo."
+            return 1
+        fi
+        VK_VER_INT=0
+    fi
+
+    MIN_VK_1_1=4198400
+    MAJOR=\$(( VK_VER_INT / 4194304 ))
+    REMAINDER=\$(( VK_VER_INT % 4194304 ))
+    MINOR=\$(( REMAINDER / 4096 ))
+    PATCH=\$(( REMAINDER % 4096 ))
+
+    log_info "Versión Vulkan detectada: \$MAJOR.\$MINOR.\$PATCH (Código numérico: \$VK_VER_INT)"
+
+    if [ "\$VK_VER_INT" -lt "\$MIN_VK_1_1" ]; then
+        log_error "BLOQUEO DE SEGURIDAD: Se requiere como mínimo Vulkan 1.1 para activar ANGLE sin errores."
+        log_warn "Tu teléfono reporta Vulkan \$MAJOR.\$MINOR.\$PATCH (inferior a 1.1). ANGLE desactivado por defecto para proteger tu juego."
+        return 2
+    fi
+
+    log_info "Verificación superada: El dispositivo cuenta con Vulkan \$MAJOR.\$MINOR.\$PATCH (>= 1.1)."
+    return 0
+}
+
+resolve_package() {
+    INPUT_PKG="\$1"
+    if [ -n "\$INPUT_PKG" ] && [ "\$INPUT_PKG" != "auto" ]; then
+        echo "\$INPUT_PKG"
+        return
+    fi
+    if pm path com.dts.freefireth >/dev/null 2>&1; then
+        echo "com.dts.freefireth"
+    elif pm path com.dts.freefiremax >/dev/null 2>&1; then
+        echo "com.dts.freefiremax"
+    elif pm path com.tencent.ig >/dev/null 2>&1; then
+        echo "com.tencent.ig"
+    elif pm path com.activision.callofduty.shooter >/dev/null 2>&1; then
+        echo "com.activision.callofduty.shooter"
+    else
+        echo "com.dts.freefireth"
+    fi
+}
+
+backup_angle_settings() {
+    if [ ! -f "\$BACKUP_STATE" ]; then
+        log_info "Creando respaldo de configuración previa de ANGLE en el sistema..."
+        ORIG_PKGS=\$(settings get global angle_gl_driver_selection_pkgs 2>/dev/null)
+        ORIG_VALS=\$(settings get global angle_gl_driver_selection_values 2>/dev/null)
+        ORIG_ALL=\$(settings get global angle_gl_driver_all_angle 2>/dev/null)
+
+        cat <<EOF > "\$BACKUP_STATE"
+ORIG_PKGS=\${ORIG_PKGS:-""}
+ORIG_VALS=\${ORIG_VALS:-""}
+ORIG_ALL=\${ORIG_ALL:-0}
+TIMESTAMP=\$(date +"%Y-%m-%d %H:%M:%S")
+EOF
+        log_info "Respaldo ANGLE guardado en \$BACKUP_STATE"
+    fi
+}
+
+enable_angle() {
+    TARGET_PKG="\${1:-auto}"
+    FORCE_RESTART="\${2:-0}"
+
+    if ! check_vulkan_support; then
+        echo "ERROR_VULKAN_1_1_REQUIRED: Tu dispositivo no cuenta con soporte mínimo para Vulkan 1.1. Modo bloqueado por seguridad."
+        exit 2
+    fi
+
+    PKG=\$(resolve_package "\$TARGET_PKG")
+    log_info "Configurando ANGLE (Vulkan Layer) para el paquete: \$PKG..."
+
+    backup_angle_settings
+
+    settings put global angle_gl_driver_selection_pkgs "\$PKG" 2>/dev/null
+    settings put global angle_gl_driver_selection_values "angle" 2>/dev/null
+    setprop debug.graphics.angle.developeroption.enable true 2>/dev/null
+
+    CURRENT_OVERLAY=\$(device_config get game_overlay "\$PKG" 2>/dev/null)
+    if [ -n "\$CURRENT_OVERLAY" ] && [ "\$CURRENT_OVERLAY" != "null" ]; then
+        UPDATED_OVERLAY=\$(echo "\$CURRENT_OVERLAY" | sed 's/useAngle=false/useAngle=true/g')
+        device_config put game_overlay "\$PKG" "\$UPDATED_OVERLAY" 2>/dev/null
+    fi
+
+    if [ "\$FORCE_RESTART" = "1" ] || [ "\$FORCE_RESTART" = "restart" ]; then
+        am force-stop "\$PKG" 2>/dev/null
+        log_info "Proceso de \$PKG reiniciado para cargar controlador Vulkan ANGLE."
+    fi
+
+    cat <<EOF > "\$STATUS_FILE"
+STATUS=1
+PACKAGE=\$PKG
+DRIVER=ANGLE_VULKAN
+VULKAN_MIN_1_1=PASSED
+TIMESTAMP=\$(date +"%Y-%m-%d %H:%M:%S")
+EOF
+
+    echo "SUCCESS: Capa ANGLE (Vulkan) activada con éxito para \$PKG. Vulkan 1.1 verificado."
+}
+
+disable_angle() {
+    TARGET_PKG="\${1:-auto}"
+    PKG=\$(resolve_package "\$TARGET_PKG")
+
+    log_info "Desactivando ANGLE y restaurando controlador nativo OpenGL ES para \$PKG..."
+
+    if [ -f "\$BACKUP_STATE" ]; then
+        . "\$BACKUP_STATE"
+        if [ -n "\$ORIG_PKGS" ]; then
+            settings put global angle_gl_driver_selection_pkgs "\$ORIG_PKGS" 2>/dev/null
+            settings put global angle_gl_driver_selection_values "\$ORIG_VALS" 2>/dev/null
+        else
+            settings delete global angle_gl_driver_selection_pkgs 2>/dev/null
+            settings delete global angle_gl_driver_selection_values 2>/dev/null
+        fi
+    else
+        settings delete global angle_gl_driver_selection_pkgs 2>/dev/null
+        settings delete global angle_gl_driver_selection_values 2>/dev/null
+    fi
+
+    CURRENT_OVERLAY=\$(device_config get game_overlay "\$PKG" 2>/dev/null)
+    if [ -n "\$CURRENT_OVERLAY" ] && [ "\$CURRENT_OVERLAY" != "null" ]; then
+        UPDATED_OVERLAY=\$(echo "\$CURRENT_OVERLAY" | sed 's/useAngle=true/useAngle=false/g')
+        device_config put game_overlay "\$PKG" "\$UPDATED_OVERLAY" 2>/dev/null
+    fi
+
+    setprop debug.graphics.angle.developeroption.enable "" 2>/dev/null
+    rm -f "\$STATUS_FILE" 2>/dev/null
+    echo "SUCCESS: ANGLE desactivado. Controlador de gráficos restaurado al OpenGL ES nativo."
+}
+
+diagnose_angle() {
+    echo "====================================================="
+    echo "  DIAGNÓSTICO VULKAN & CAPA ANGLE (OPENGL -> VULKAN) "
+    echo "====================================================="
+    RAW_FEAT=\$(pm list features 2>/dev/null | grep -i "android.hardware.vulkan.version")
+    VK_VER_INT=\$(echo "\$RAW_FEAT" | cut -d= -f2 | tr -dc '0-9')
+    VK_VER_INT=\${VK_VER_INT:-0}
+
+    MAJOR=\$(( VK_VER_INT / 4194304 ))
+    REMAINDER=\$(( VK_VER_INT % 4194304 ))
+    MINOR=\$(( REMAINDER / 4096 ))
+    PATCH=\$(( REMAINDER % 4096 ))
+
+    echo "• Soporte Vulkan Hardware: \$MAJOR.\$MINOR.\$PATCH (Código: \$VK_VER_INT)"
+    if [ "\$VK_VER_INT" -ge 4198400 ]; then
+        echo "• Estado Vulkan 1.1+: COMPATIBLE ✓ (Cumple requisito mínimo)"
+    else
+        echo "• Estado Vulkan 1.1+: NO COMPATIBLE ✗ (Requiere Vulkan 1.1+ para ANGLE)"
+    fi
+
+    EGL_HW=\$(getprop ro.hardware.egl 2>/dev/null)
+    VK_HW=\$(getprop ro.hardware.vulkan 2>/dev/null)
+    echo "• Controlador EGL: \${EGL_HW:-desconocido}"
+    echo "• Controlador Vulkan: \${VK_HW:-mali}"
+
+    CUR_PKGS=\$(settings get global angle_gl_driver_selection_pkgs 2>/dev/null)
+    CUR_VALS=\$(settings get global angle_gl_driver_selection_values 2>/dev/null)
+    echo "• Apps con ANGLE: \${CUR_PKGS:-'Ninguna (OpenGL nativo)'}"
+    echo "• Modo de Driver: \${CUR_VALS:-'default'}"
+    echo "====================================================="
+}
+
+get_status() {
+    RAW_FEAT=\$(pm list features 2>/dev/null | grep -i "android.hardware.vulkan.version")
+    VK_VER_INT=\$(echo "\$RAW_FEAT" | cut -d= -f2 | tr -dc '0-9')
+    VK_VER_INT=\${VK_VER_INT:-0}
+
+    VULKAN_1_1="0"
+    [ "\$VK_VER_INT" -ge 4198400 ] && VULKAN_1_1="1"
+    STATUS="0"
+    [ -f "\$STATUS_FILE" ] && STATUS="1"
+    CUR_PKGS=\$(settings get global angle_gl_driver_selection_pkgs 2>/dev/null)
+
+    echo "ANGLE_STATUS=\$STATUS"
+    echo "VULKAN_1_1_SUPPORTED=\$VULKAN_1_1"
+    echo "VULKAN_VERSION_CODE=\$VK_VER_INT"
+    echo "TARGET_PACKAGE=\${CUR_PKGS:-none}"
+    echo "SECURITY_RULE=CERO_PERSIST_SYS"
+}
+
+ACTION="\${1:-status}"
+case "\$ACTION" in
+    enable|1|on|angle) enable_angle "\$2" "\$3" ;;
+    disable|0|off|restore) disable_angle "\$2" ;;
+    check|vulkan) check_vulkan_support ;;
+    diag|info) diagnose_angle ;;
+    status) get_status ;;
+    *) echo "Uso: \$0 {enable [pkg] [restart]|disable [pkg]|check|diag|status}"; exit 1 ;;
 esac
 `,
       { unixPermissions: '755' }

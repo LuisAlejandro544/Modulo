@@ -17,16 +17,23 @@ Este repositorio combina una aplicación frontend en **React 19 + TypeScript** c
 │   ├── uninstall.sh                  # Limpieza de temporales al desinstalar
 │   ├── scripts/                      # Scripts shell modulares ejecutables en Android
 │   │   ├── touch_boost.sh            # Aceleración de respuesta y sensibilidad táctil
+│   │   ├── fps_boost.sh              # Ultra FPS Engine (Latch Unsignaled y CPU Affinity)
+│   │   ├── ram_tweak.sh              # Módulo Anti-Stutter RAM & ZRAM (Swappiness 50)
+│   │   ├── governor_tweak.sh         # Piso de Frecuencia GPU (Floor Frequency 400-500 MHz)
+│   │   ├── gms_shield.sh             # Escudo Anti-Basura Google Play Services
 │   │   ├── mali_common.sh            # Librería compartida (logging, detección 32/64 bits)
 │   │   ├── detect_gpu.sh             # Diagnóstico de hardware Mali
-│   │   ├── governor_tweak.sh         # Plantilla para frecuencias y escalado DVFS
-│   │   └── surface_tweak.sh          # Sincronización de SurfaceFlinger y buffers
+│   │   └── surface_tweak.sh          # Sincronización de SurfaceFlinger y Modo Batata
 │   └── webroot/                      # INTERFAZ WEBUI (Se abre dentro de la app AxManager)
 │       └── index.html                # HTML/JS nativo con ksu.exec y Axeron API
 ├── src/                              # APLICACIÓN WEB REACT (Centro de control y descarga)
 │   ├── components/
 │   │   ├── Navbar.tsx                # Barra de navegación adaptable (móvil y escritorio)
 │   │   ├── HomeScreen.tsx            # Pantalla principal (Hello World y visión general)
+│   │   ├── FpsScreen.tsx             # Panel interactivo Ultra FPS Engine
+│   │   ├── RamScreen.tsx             # Panel Anti-Stutter RAM & ZRAM
+│   │   ├── GpuGovernorScreen.tsx     # Panel Piso de Frecuencia GPU Mali
+│   │   ├── GmsShieldScreen.tsx       # Panel Escudo Anti-Basura GMS
 │   │   ├── ScriptsExplorerScreen.tsx # Visor y auditor de scripts .sh
 │   │   ├── ArchitectureScreen.tsx    # Análisis de arquitecturas 32-bit y 64-bit
 │   │   ├── DeployScreen.tsx          # Panel de empaquetado y botón de descarga directa ZIP

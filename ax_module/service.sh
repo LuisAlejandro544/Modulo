@@ -25,10 +25,15 @@ if [ -f "$MODDIR/scripts/mali_common.sh" ]; then
     log_info "Servidor AXERON: ${AXERON:-no-detectado}, Versión: ${AXERONVER:-indefinida}"
 fi
 
-# Activar Ultra FPS Engine por defecto (según especificación del usuario)
 if [ -f "$MODDIR/scripts/fps_boost.sh" ]; then
     sh "$MODDIR/scripts/fps_boost.sh" enable auto
     log_info "Ultra FPS Engine activado automáticamente en el arranque."
+fi
+
+# Activar optimización Anti-Stutter RAM & ZRAM por defecto
+if [ -f "$MODDIR/scripts/ram_tweak.sh" ]; then
+    sh "$MODDIR/scripts/ram_tweak.sh" enable 50
+    log_info "Módulo Anti-Stutter RAM & ZRAM activado automáticamente."
 fi
 
 log_info "Servicio de AX Mali Engine en ejecución y listo para peticiones WebUI."

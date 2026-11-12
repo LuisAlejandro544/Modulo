@@ -29,6 +29,10 @@ if [ -d "$MODPATH/scripts" ]; then
     ui_print "  ✓ Touch Boost (Touch Slop 1px & Zero Backpressure)"
     ui_print "  ✓ Ultra FPS Engine (Latch Unsignaled & CPU Affinity)"
     ui_print "  ✓ Modo Batata (Anulación de Game Booster)"
+    ui_print "  ✓ Anti-Stutter RAM & ZRAM (Swappiness & Zero Drops)"
+    ui_print "  ✓ Piso Frecuencia GPU (Floor Frequency 400-500 MHz)"
+    ui_print "  ✓ GMS Shield (Escudo Anti-Basura Google Play)"
+    ui_print "  ✓ Capa ANGLE Vulkan 1.1+ (OpenGL ES sobre Vulkan)"
 fi
 
 chmod 0755 "$MODPATH/service.sh" 2>/dev/null

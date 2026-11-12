@@ -12,16 +12,30 @@ Plataforma de desarrollo, control y empaquetado de módulos para procesadores gr
    - Sincroniza la composición temprana de `SurfaceFlinger` y la GPU Mali (`early_phase_offset_ns`).
    - **100% Reversible:** Realiza un respaldo en caliente de la configuración del usuario antes de aplicar cualquier cambio para permitir la restauración exacta.
 
-2. **Seguridad Absoluta (Cero `persist.sys.*`):**
+2. **Módulo Anti-Stutter RAM & ZRAM (`ram_tweak.sh`):**
+   - Ajusta `vm.swappiness` a 50 para evitar que el kernel sature la CPU comprimiendo memoria en ZRAM durante tiroteos.
+   - Retiene inodos y estructuras de archivos de juego en RAM (`vm.vfs_cache_pressure = 50`).
+   - Lecturas atómicas de swap de 1 sola página sin ráfagas (`page-cluster = 0`).
+   - Auditoría y detección de la "RAM Virtual" lenta en almacenamiento flash.
+
+3. **Piso de Frecuencia GPU Mali (`governor_tweak.sh`):**
+   - Resuelve el problema del reloj dormido con Gráficos Batata.
+   - Fija un piso mínimo (Floor Frequency) de 400 a 500 MHz en devfreq para garantizar reacción inmediata en cada fotograma.
+
+4. **GMS Shield (`gms_shield.sh`):**
+   - Neutraliza servicios secundarios de telemetría, crash logs y rastreo publicitario de Google Play Services.
+   - Preserva al 100% el inicio de sesión con Google, Google Play Games y compras en la Play Store.
+
+5. **Seguridad Absoluta (Cero `persist.sys.*`):**
    - Los scripts **jamás** tocan propiedades del tipo `persist.sys.*`, eliminando el riesgo de bootloop o inestabilidad en Android.
 
-3. **Arquitectura Dual 32-bit y 64-bit:**
+6. **Arquitectura Dual 32-bit y 64-bit:**
    - Detección automática en tiempo de ejecución de `arm64-v8a` (dispositivos modernos) y `armeabi-v7a` (dispositivos legacy/gama de entrada).
 
-4. **Interfaz WebUI para AxManager (`webroot/index.html`):**
+7. **Interfaz WebUI para AxManager (`webroot/index.html`):**
    - Interfaz gráfica embebida que corre dentro de la aplicación AxManager en el móvil mediante el puente de comandos `ksu.exec` y la API `Axeron`.
 
-5. **Descarga Directa en Teléfono y GitHub Action Manual:**
+8. **Descarga Directa en Teléfono y GitHub Action Manual:**
    - La web incluye un botón directo para generar y descargar `ax_mali_core_optimizer.zip` al teléfono sin PC.
    - GitHub Action en `.github/workflows/build_module_zip.yml` configurada **exclusivamente con activación manual** (`workflow_dispatch`).
 
@@ -37,10 +51,13 @@ ax_module/
 ├── uninstall.sh        # Limpieza de archivos temporales al desinstalar
 ├── scripts/
 │   ├── touch_boost.sh     # Optimización táctil y latencia (Reversible)
+│   ├── fps_boost.sh       # Ultra FPS Engine (Latch Unsignaled y CPU Affinity)
+│   ├── ram_tweak.sh       # Módulo Anti-Stutter RAM & ZRAM (Swappiness 50)
+│   ├── governor_tweak.sh  # Piso de Frecuencia GPU (Floor Frequency 400-500 MHz)
+│   ├── gms_shield.sh      # Escudo Anti-Basura Google Play Services
 │   ├── mali_common.sh     # Utilidades comunes y detección 32/64 bits
 │   ├── detect_gpu.sh      # Diagnóstico de GPU Mali en tiempo real
-│   ├── governor_tweak.sh  # Hooks preparados para escalado DVFS
-│   └── surface_tweak.sh   # Sincronización de SurfaceFlinger
+│   └── surface_tweak.sh   # Modo Batata y anulación de Game Booster
 └── webroot/
     └── index.html      # WebUI interactivo para la app de AxManager
 ```

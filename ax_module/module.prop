@@ -3,6 +3,6 @@ name=Mali GPU Core Engine
 version=v1.3.0
 versionCode=130
 author=AX Mobile Community
-description=Control de GPU Mali: Ultra FPS Engine (Latch Unsignaled, Core Affinity, Disable Blur, RAM Purge), Touch Slop 1px y Modo Batata (Android 12+).
+description=Control de GPU Mali: Ultra FPS Engine, Anti-Stutter RAM, Piso GPU, GMS Shield, ANGLE (Vulkan 1.1+) y Modo Batata.
 axeronPlugin=30000
 minApi=26
