@@ -3,8 +3,8 @@
 # Script: touch_boost.sh
 # Módulo: AX Mali Core Engine para AX Manager (Root & No-Root)
 # Propósito: Optimizar la respuesta y sensibilidad táctil del digitalizador,
-#            reducir timeouts del InputDispatcher y sincronizar el pipeline de la
-#            GPU Mali para disminuir la latencia touch-to-display.
+#            reducir timeouts del InputDispatcher, eliminar la contrapresión
+#            de SurfaceFlinger (Zero Backpressure) y bajar Touch Slop a 1px.
 # ==============================================================================
 # REGLAS CRÍTICAS DE SEGURIDAD:
 # 1. NUNCA se utiliza ni se modificará ninguna propiedad persistente de sistema.
@@ -50,20 +50,18 @@ EOF
 }
 
 # ==============================================================================
-# 2. Función de Activación: Reducción de Latencia y Aumento de Sensibilidad
+# 2. Función de Activación: Sensibilidad Ultra, Slop 1px y Zero Backpressure
 # ==============================================================================
 enable_touch_boost() {
     log_info "Iniciando activación de Touch Boost para GPU Mali y Panel Táctil..."
 
-    # Detectar arquitectura para ajustar parámetros de memoria
     ARCH=$(getprop ro.product.cpu.abi)
     log_info "Arquitectura detectada: $ARCH"
 
     # Paso A: Respaldar estado previo si aún no se ha hecho
     backup_original_settings
 
-    # Paso B: Reducción de tiempos de retardo en InputDispatcher (Android Settings)
-    # Solo settings oficiales del subsistema de entrada
+    # Paso B: Reducción de retardos en InputDispatcher (Android Settings)
     settings put secure long_press_timeout 250
     settings put secure multi_press_timeout 200
     settings put system pointer_speed 7
@@ -72,7 +70,6 @@ enable_touch_boost() {
     log_info "Ajustes de InputDispatcher y pointer_speed aplicados."
 
     # Paso C: Escaneo de nodos sysfs del kernel para modo juego / alta tasa de reporte
-    # Se prueban rutas comunes en SoCs MediaTek Dimensity/Helio y controladores de pantalla
     TOUCH_NODES="
         /sys/class/touch/touch_dev/game_switch
         /proc/touchpanel/game_switch_enable
@@ -84,7 +81,6 @@ enable_touch_boost() {
     NODES_APPLIED=0
     for node in $TOUCH_NODES; do
         if [ -w "$node" ]; then
-            # Si el nodo es oppo_tp_limit_enable, 0 quita el límite de reporte; en los demás, 1 activa game mode
             if echo "$node" | grep -q "limit_enable"; then
                 echo 0 > "$node" 2>/dev/null && NODES_APPLIED=$((NODES_APPLIED + 1))
             else
@@ -95,16 +91,20 @@ enable_touch_boost() {
     done
     log_info "Nodos de hardware de panel optimizados: $NODES_APPLIED"
 
-    # Paso D: Reducción de latencia de fase de SurfaceFlinger y GPU Mali en RAM
-    # Propiedades en memoria temporal (debug.*), NUNCA propiedades de sistema persistente
+    # Paso D: Reducción de Touch Slop a 1px (Respuesta instantánea del dedo al alzar mira)
+    # y eliminación de la contrapresión de SurfaceFlinger (Zero Backpressure)
+    # Todas propiedades no persistentes en memoria RAM (debug.* y view.*)
+    setprop view.touch_slop 1 2>/dev/null
+    setprop debug.touch.latency_factor 0 2>/dev/null
+    setprop debug.sf.disable_backpressure 1 2>/dev/null
     setprop debug.sf.early_phase_offset_ns 500000 2>/dev/null
     setprop debug.sf.early_gl_phase_offset_ns 3000000 2>/dev/null
     setprop debug.sf.early_app_phase_offset_ns 500000 2>/dev/null
-    log_info "Fases de composición temprana SurfaceFlinger/Mali configuradas."
+    log_info "Touch Slop (1px), Zero Backpressure y Fases de composición configuradas."
 
     # Registrar estado activo
     echo "1" > "$STATUS_FILE"
-    echo "SUCCESS: Modo Ultra Sensibilidad Táctil activado con éxito."
+    echo "SUCCESS: Touch Boost (Slop 1px + Zero Backpressure) activado con éxito."
 }
 
 # ==============================================================================
@@ -122,7 +122,6 @@ disable_touch_boost() {
         settings put secure touch_blocking_period "${ORIG_TOUCH_BLOCK:-0}"
         log_info "Valores del sistema restaurados según respaldo previo."
     else
-        # Valores de fábrica estándar si no existía archivo
         settings put secure long_press_timeout 400
         settings put secure multi_press_timeout 300
         settings put system pointer_speed 0
@@ -146,7 +145,10 @@ disable_touch_boost() {
         echo 1 > "/proc/touchpanel/oppo_tp_limit_enable" 2>/dev/null
     fi
 
-    # Restaurar propiedades en memoria RAM de SurfaceFlinger a default
+    # Restaurar propiedades en memoria RAM a valores por defecto
+    setprop view.touch_slop "" 2>/dev/null
+    setprop debug.touch.latency_factor "" 2>/dev/null
+    setprop debug.sf.disable_backpressure "" 2>/dev/null
     setprop debug.sf.early_phase_offset_ns "" 2>/dev/null
     setprop debug.sf.early_gl_phase_offset_ns "" 2>/dev/null
     setprop debug.sf.early_app_phase_offset_ns "" 2>/dev/null
@@ -166,18 +168,18 @@ get_status() {
 
     LONG_PRESS=$(settings get secure long_press_timeout 2>/dev/null)
     SPEED=$(settings get system pointer_speed 2>/dev/null)
+    SLOP=$(getprop view.touch_slop)
+    BP=$(getprop debug.sf.disable_backpressure)
 
     echo "STATUS=$CURRENT_STATUS"
     echo "LONG_PRESS_TIMEOUT=$LONG_PRESS"
     echo "POINTER_SPEED=$SPEED"
+    echo "TOUCH_SLOP=${SLOP:-default}"
+    echo "ZERO_BACKPRESSURE=${BP:-default}"
     echo "SECURITY_AUDIT=0_VIOLATIONS"
 }
 
-# ==============================================================================
-# Entrada principal del script
-# ==============================================================================
 ACTION="${1:-status}"
-
 case "$ACTION" in
     enable|1|on)
         enable_touch_boost

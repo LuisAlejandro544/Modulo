@@ -108,16 +108,16 @@ export const DeployScreen: React.FC = () => {
 
         <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 font-mono text-xs text-slate-300 leading-relaxed overflow-x-auto">
           <div>ax_mali_core_optimizer.zip</div>
-          <div className="text-slate-400 pl-4">├── <span className="text-cyan-400 font-bold">module.prop</span> <span className="text-slate-600">// Metadatos y axeronPlugin=30000</span></div>
+          <div className="text-slate-400 pl-4">├── <span className="text-cyan-400 font-bold">module.prop</span> <span className="text-slate-600">// Metadatos v1.2 y axeronPlugin=1000</span></div>
           <div className="text-slate-400 pl-4">├── <span className="text-cyan-400 font-bold">customize.sh</span> <span className="text-slate-600">// Asignación de permisos +x y validación</span></div>
           <div className="text-slate-400 pl-4">├── <span className="text-cyan-400 font-bold">service.sh</span> <span className="text-slate-600">// Servicio BusyBox en arranque</span></div>
           <div className="text-slate-400 pl-4">├── <span className="text-cyan-400 font-bold">uninstall.sh</span> <span className="text-slate-600">// Limpieza de archivos temporales</span></div>
           <div className="text-slate-400 pl-4">├── scripts/</div>
-          <div className="text-slate-400 pl-8">├── <span className="text-emerald-400 font-bold">touch_boost.sh</span> <span className="text-slate-600">// Optimización táctil y latencia (Reversible)</span></div>
+          <div className="text-slate-400 pl-8">├── <span className="text-emerald-400 font-bold">touch_boost.sh</span> <span className="text-slate-600">// Touch Slop 1px, No Backpressure y Latencia 250ms</span></div>
           <div className="text-slate-400 pl-8">├── <span className="text-cyan-300">mali_common.sh</span> <span className="text-slate-600">// Detección 32/64 bits y GPU Mali</span></div>
           <div className="text-slate-400 pl-8">├── <span className="text-cyan-300">detect_gpu.sh</span> <span className="text-slate-600">// Diagnóstico en tiempo real</span></div>
           <div className="text-slate-400 pl-8">├── <span className="text-cyan-300">governor_tweak.sh</span> <span className="text-slate-600">// Control de frecuencias DVFS</span></div>
-          <div className="text-slate-400 pl-8">└── <span className="text-cyan-300">surface_tweak.sh</span> <span className="text-slate-600">// Sincronización SurfaceFlinger</span></div>
+          <div className="text-slate-400 pl-8">└── <span className="text-cyan-300">surface_tweak.sh</span> <span className="text-slate-600">// Modo Batata (25%, 50%, 70%) & Anulación Game Booster</span></div>
           <div className="text-slate-400 pl-4">└── webroot/</div>
           <div className="text-slate-400 pl-8">└── <span className="text-amber-300 font-bold">index.html</span> <span className="text-slate-600">// Interfaz WebUI interactiva con ksu.exec</span></div>
         </div>

@@ -16,11 +16,11 @@ export async function generateModuleZipBlob(): Promise<Blob> {
     `# Propiedades del Módulo para AX Manager / Axeron
 id=ax_mali_core_optimizer
 name=Mali GPU Core Engine
-version=v1.0.0
-versionCode=100
+version=v1.2.0
+versionCode=120
 author=AX Mobile Community
-description=Módulo base para optimización y control de GPU Mali en dispositivos móviles (32-bit y 64-bit). Compatible con AX Manager sin root y con root.
-axeronPlugin=30000
+description=Control de GPU Mali: Sensibilidad competitiva (Slop 1px, Zero Backpressure) y Modo Batata exclusivo Android 12+ (25%, 50%, 70%) con anulación de Game Booster.
+axeronPlugin=1000
 minApi=26
 `
   );
@@ -176,10 +176,13 @@ enable_touch_boost() {
     done
     log_info "Nodos de hardware de panel optimizados: \$NODES_APPLIED"
 
+    setprop view.touch_slop 1 2>/dev/null
+    setprop debug.touch.latency_factor 0 2>/dev/null
+    setprop debug.sf.disable_backpressure 1 2>/dev/null
     setprop debug.sf.early_phase_offset_ns 500000 2>/dev/null
     setprop debug.sf.early_gl_phase_offset_ns 3000000 2>/dev/null
     setprop debug.sf.early_app_phase_offset_ns 500000 2>/dev/null
-    log_info "Fases de composición temprana SurfaceFlinger/Mali configuradas."
+    log_info "Touch Slop (1px), Zero Backpressure y Fases de composición configuradas."
 
     echo "1" > "\$STATUS_FILE"
     echo "SUCCESS: Modo Ultra Sensibilidad Táctil activado con éxito."
@@ -218,6 +221,9 @@ disable_touch_boost() {
         echo 1 > "/proc/touchpanel/oppo_tp_limit_enable" 2>/dev/null
     fi
 
+    setprop view.touch_slop "" 2>/dev/null
+    setprop debug.touch.latency_factor "" 2>/dev/null
+    setprop debug.sf.disable_backpressure "" 2>/dev/null
     setprop debug.sf.early_phase_offset_ns "" 2>/dev/null
     setprop debug.sf.early_gl_phase_offset_ns "" 2>/dev/null
     setprop debug.sf.early_app_phase_offset_ns "" 2>/dev/null
@@ -373,10 +379,10 @@ check_android_version() {
     return 0
 }
 
-detect_game_package() {
-    CUSTOM_PKG="\$1"
-    if [ -n "\$CUSTOM_PKG" ] && [ "\$CUSTOM_PKG" != "auto" ]; then
-        echo "\$CUSTOM_PKG"
+resolve_package() {
+    INPUT_PKG="\$1"
+    if [ -n "\$INPUT_PKG" ] && [ "\$INPUT_PKG" != "auto" ]; then
+        echo "\$INPUT_PKG"
         return
     fi
     if pm path com.dts.freefireth >/dev/null 2>&1; then
@@ -391,14 +397,16 @@ detect_game_package() {
 enable_potato_mode() {
     SCALE_FACTOR="\${1:-0.5}"
     TARGET_PKG="\${2:-auto}"
+    FORCE_RESTART="\${3:-0}"
 
     if ! check_android_version; then
         echo "ERROR_SECURITY_BLOCKED: Requiere Android 12 o superior."
         exit 2
     fi
 
-    PKG=\$(detect_game_package "\$TARGET_PKG")
+    PKG=\$(resolve_package "\$TARGET_PKG")
     FACTOR="\$SCALE_FACTOR"
+    [ "\$FACTOR" = "extreme" ] && FACTOR="0.25"
     [ "\$FACTOR" = "potato" ] && FACTOR="0.5"
     [ "\$FACTOR" = "comp" ] && FACTOR="0.7"
 
@@ -409,20 +417,35 @@ PACKAGE=\$PKG
 TIMESTAMP=\$(date +"%Y-%m-%d %H:%M:%S")
 EOF
 
+    # Desvincular modos conflictivos del Game Booster del fabricante
+    cmd game reset-mode "\$PKG" 2>/dev/null
     cmd game mode performance "\$PKG" 2>/dev/null
-    device_config put game_overlay "\$PKG" "mode=2,downscaleFactor=\${FACTOR}:fps=60" 2>/dev/null
+
+    # Bloquear sincronización en segundo plano de DeviceConfig
+    device_config set_sync_disabled_for_tests persistent 2>/dev/null
+
+    # Inyectar overlay con useAngle=false
+    device_config put game_overlay "\$PKG" "mode=2,downscaleFactor=\${FACTOR}:fps=60:useAngle=false" 2>/dev/null
+
+    # Forzar propiedades volátiles en RAM para GPU Mali
     setprop debug.mali.render_scale "\$FACTOR" 2>/dev/null
     setprop debug.egl.force_msaa 0 2>/dev/null
     setprop debug.egl.force_fxaa 0 2>/dev/null
-    echo "SUCCESS: Modo Batata (\${FACTOR}) activado en \$PKG."
+
+    if [ "\$FORCE_RESTART" = "1" ] || [ "\$FORCE_RESTART" = "restart" ]; then
+        am force-stop "\$PKG" 2>/dev/null
+    fi
+
+    echo "SUCCESS: Modo Batata (\${FACTOR}) activado en \$PKG (Game Booster anulado)."
 }
 
 disable_potato_mode() {
     TARGET_PKG="\${1:-auto}"
-    PKG=\$(detect_game_package "\$TARGET_PKG")
+    PKG=\$(resolve_package "\$TARGET_PKG")
 
     cmd game mode standard "\$PKG" 2>/dev/null
     device_config delete game_overlay "\$PKG" 2>/dev/null
+    device_config set_sync_disabled_for_tests none 2>/dev/null
     rm -f "\$POTATO_STATUS" 2>/dev/null
 
     setprop debug.mali.render_scale "" 2>/dev/null
@@ -441,15 +464,21 @@ get_status() {
     echo "POTATO_STATUS=\$STATUS"
     echo "POTATO_COMPAT=\$COMPAT"
     echo "POTATO_SDK=\$SDK_NUM"
+    echo "GAMEBOOSTER_OVERRIDE=ACTIVE"
+}
+
+list_user_packages() {
+    pm list packages -3 2>/dev/null | sed 's/package://' | sort
 }
 
 ACTION="\${1:-status}"
 case "\$ACTION" in
-    enable|1|on|potato) enable_potato_mode "\$2" "\$3" ;;
+    enable|1|on|potato) enable_potato_mode "\$2" "\$3" "\$4" ;;
     disable|0|off|restore) disable_potato_mode "\$2" ;;
     status|info) get_status ;;
+    list|packages) list_user_packages ;;
     check) check_android_version ;;
-    *) echo "Uso: \$0 {enable [0.5|0.7] [pkg]|disable [pkg]|status|check}"; exit 1 ;;
+    *) echo "Uso: \$0 {enable [0.25|0.5|0.7] [pkg] [restart]|disable [pkg]|status|list|check}"; exit 1 ;;
 esac
 `
     );
@@ -468,8 +497,8 @@ esac
   <title>AX Mali Core Engine</title>
   <style>
     :root {
-      --bg: #0b0f19; --surface: #121826; --card: #182235; --primary: #38bdf8;
-      --border: #223048; --text: #f8fafc; --muted: #94a3b8;
+      --bg: #090d16; --surface: #101726; --card: #162032; --primary: #38bdf8;
+      --border: #1e293b; --text: #f8fafc; --muted: #94a3b8;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, sans-serif; -webkit-tap-highlight-color: transparent; }
     body { background: var(--bg); color: var(--text); font-size: 14px; min-height: 100vh; }
@@ -485,15 +514,18 @@ esac
     .btn-p { background: #0284c7; color: white; }
     .btn-s { background: #1e293b; color: var(--text); border: 1px solid var(--border); }
     .opt { border: 1px solid var(--border); background: var(--card); padding: 12px; border-radius: 10px; margin-bottom: 8px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
-    .opt.sel { border-color: var(--primary); background: rgba(56,189,248,0.1); }
+    .opt.sel { border-color: var(--primary); background: rgba(56,189,248,0.12); }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+    .chip-btn { background: var(--card); border: 1px solid var(--border); border-radius: 999px; padding: 4px 10px; font-size: 11px; font-weight: 600; color: var(--muted); cursor: pointer; }
+    .chip-btn.sel { background: rgba(56,189,248,0.15); border-color: var(--primary); color: var(--primary); }
+    .input-box { width: 100%; background: var(--card); color: var(--text); border: 1px solid var(--border); border-radius: 10px; padding: 10px; margin: 8px 0; font-size: 12px; font-weight: 600; outline: none; }
     .console { background: #060912; border: 1px solid var(--border); border-radius: 10px; padding: 10px; font-family: monospace; font-size: 11px; color: #38bdf8; min-height: 80px; max-height: 150px; overflow-y: auto; white-space: pre-wrap; margin-top: 10px; }
-    select { width: 100%; background: var(--card); color: var(--text); border: 1px solid var(--border); border-radius: 10px; padding: 10px; margin: 8px 0; }
   </style>
 </head>
 <body>
   <div class="bar">
     <strong style="font-size: 16px;">AX Mali Core</strong>
-    <span class="chip">Native UI</span>
+    <span class="chip">v1.2</span>
   </div>
   <div class="tabs">
     <button class="tbtn active" onclick="nav('touch')">⚡ Táctil</button>
@@ -502,30 +534,42 @@ esac
   </div>
   <div id="p-touch" class="pane active">
     <div class="card">
-      <div style="font-weight: 700; margin-bottom: 6px;">⚡ Touch Boost & Sensibilidad</div>
-      <p style="font-size: 12px; color: var(--muted); margin-bottom: 12px;">Reduce retardo a 250ms y maximiza pointer_speed.</p>
-      <button class="btn btn-p" onclick="cmdTouch(true)">Activar Touch Boost (250ms)</button>
+      <div style="font-weight: 700; margin-bottom: 6px;">⚡ Touch Slop 1px & Zero Backpressure</div>
+      <p style="font-size: 12px; color: var(--muted); margin-bottom: 12px;">Respuesta instantánea del dedo para alzar mira sin retardo de SurfaceFlinger.</p>
+      <button class="btn btn-p" onclick="cmdTouch(true)">Activar Touch Boost (Slop 1px)</button>
       <button class="btn btn-s" onclick="cmdTouch(false)">Restaurar Original</button>
     </div>
   </div>
   <div id="p-potato" class="pane">
     <div class="card">
       <div style="font-weight: 700; margin-bottom: 6px;">🥔 Gráficos Batata (Android 12+)</div>
-      <p style="font-size: 12px; color: var(--muted); margin-bottom: 10px;">Exclusivo Android 12+. Reduce escala de renderizado en Mali para ganar +30 FPS sin tocar pantalla del sistema.</p>
-      <select id="pkg">
-        <option value="com.dts.freefireth">Free Fire (com.dts.freefireth)</option>
-        <option value="com.dts.freefiremax">Free Fire MAX (com.dts.freefiremax)</option>
+      <p style="font-size: 12px; color: var(--muted); margin-bottom: 10px;">Exclusivo Android 12+. Anula Game Boosters del fabricante y reduce el renderizado en Mali.</p>
+      <label style="font-size: 11px; font-weight: 700; color: var(--muted);">JUEGOS DETECTADOS / SELECCIÓN</label>
+      <select id="userAppSelect" class="input-box" onchange="onSelectApp(this.value)">
+        <option value="">Escaneando apps de tu teléfono...</option>
       </select>
-      <div class="opt sel" id="o50" onclick="selScale('0.5','o50')">
-        <div><strong>Modo Batata (50%)</strong><div style="font-size: 11px; color: var(--muted);">Gráficos estilo cartón • FPS Máximos</div></div>
-        <span>🥔</span>
+      <div class="chips">
+        <span class="chip-btn sel" onclick="setPkg('com.dts.freefireth', this)">Free Fire</span>
+        <span class="chip-btn" onclick="setPkg('com.dts.freefiremax', this)">FF MAX</span>
+        <span class="chip-btn" onclick="setPkg('com.tencent.ig', this)">PUBG</span>
+        <span class="chip-btn" onclick="setPkg('com.activision.callofduty.shooter', this)">CoD</span>
       </div>
-      <div class="opt" id="o70" onclick="selScale('0.7','o70')">
-        <div><strong>Modo Competitivo (70%)</strong><div style="font-size: 11px; color: var(--muted);">Balance nítido y fluido</div></div>
+      <input type="text" id="pkgInput" class="input-box" value="com.dts.freefireth">
+      <div class="opt" id="o25" onclick="selScale('0.25','o25')">
+        <div><strong>🥔 Modo Batata Extremo Ultra (25%)</strong><div style="font-size: 11px; color: var(--muted);">Gráficos planos de cartón • Libera 85% Mali</div></div>
+        <span>🔥</span>
+      </div>
+      <div class="opt sel" id="o50" onclick="selScale('0.5','o50')">
+        <div><strong>🥔 Modo Batata Clásico (50%)</strong><div style="font-size: 11px; color: var(--muted);">Texturas plastilina • +30 FPS en tiroteos</div></div>
         <span>⚡</span>
       </div>
-      <button class="btn btn-p" onclick="cmdPotato(true)">Aplicar Modo Batata</button>
-      <button class="btn btn-s" onclick="cmdPotato(false)">Restaurar Gráficos Nativos</button>
+      <div class="opt" id="o70" onclick="selScale('0.7','o70')">
+        <div><strong>⚡ Modo Competitivo (70%)</strong><div style="font-size: 11px; color: var(--muted);">Balance nítido y fluido</div></div>
+        <span>🎯</span>
+      </div>
+      <button class="btn btn-p" onclick="cmdPotato(true, true)">Aplicar y Reiniciar Juego (Recomendado)</button>
+      <button class="btn btn-s" onclick="cmdPotato(true, false)">Aplicar en Caliente</button>
+      <button class="btn btn-s" onclick="cmdPotato(false, false)">Restaurar Gráficos Nativos</button>
     </div>
   </div>
   <div id="p-diag" class="pane">
@@ -549,6 +593,17 @@ esac
       document.querySelectorAll('.opt').forEach(o => o.classList.remove('sel'));
       document.getElementById(id).classList.add('sel');
     }
+    function setPkg(p, el) {
+      document.getElementById('pkgInput').value = p;
+      document.querySelectorAll('.chip-btn').forEach(c => c.classList.remove('sel'));
+      if (el) el.classList.add('sel');
+    }
+    function onSelectApp(p) {
+      if (p) {
+        document.getElementById('pkgInput').value = p;
+        document.querySelectorAll('.chip-btn').forEach(c => c.classList.remove('sel'));
+      }
+    }
     async function exec(c) {
       const log = document.getElementById('log');
       log.textContent += "\\n> " + c.slice(0, 45) + "...\\n";
@@ -567,12 +622,15 @@ esac
       const a = en ? 'enable' : 'disable';
       await exec('sh $AXERONDIR/plugins/ax_mali_core_optimizer/scripts/touch_boost.sh ' + a + ' || sh ./scripts/touch_boost.sh ' + a);
     }
-    async function cmdPotato(en) {
-      const p = document.getElementById('pkg').value;
+    async function cmdPotato(en, restart) {
+      const p = document.getElementById('pkgInput').value.trim() || 'com.dts.freefireth';
+      const r = restart ? '1' : '0';
       if (en) {
-        await exec('sh $AXERONDIR/plugins/ax_mali_core_optimizer/scripts/surface_tweak.sh enable ' + curScale + ' ' + p + ' || sh ./scripts/surface_tweak.sh enable ' + curScale + ' ' + p);
+        await exec('sh $AXERONDIR/plugins/ax_mali_core_optimizer/scripts/surface_tweak.sh enable ' + curScale + ' ' + p + ' ' + r + ' || sh ./scripts/surface_tweak.sh enable ' + curScale + ' ' + p + ' ' + r);
+        if (restart) alert('Modo Batata aplicado a ' + p + '. Juego cerrado para arrancar con gráficos reducidos.');
       } else {
         await exec('sh $AXERONDIR/plugins/ax_mali_core_optimizer/scripts/surface_tweak.sh disable ' + p + ' || sh ./scripts/surface_tweak.sh disable ' + p);
+        alert('Gráficos nativos restaurados.');
       }
     }
     window.addEventListener('DOMContentLoaded', async () => {
@@ -580,6 +638,20 @@ esac
       if (out) {
         const p = out.trim().split('\\n');
         document.getElementById('info').innerHTML = 'SDK: ' + (p[0]||'Desconocido') + '<br>ABI: ' + (p[1]||'arm64');
+      }
+      const appOut = await exec('pm list packages -3 2>/dev/null | sed "s/package://" | sort');
+      if (appOut && appOut.includes('.')) {
+        const dd = document.getElementById('userAppSelect');
+        const pkgs = appOut.trim().split('\\n').filter(x => x.length > 2 && !x.startsWith('>'));
+        if (pkgs.length > 0) {
+          dd.innerHTML = '<option value="">-- Selecciona un juego/app de tu teléfono --</option>';
+          pkgs.forEach(pkg => {
+            const opt = document.createElement('option');
+            opt.value = pkg; opt.textContent = pkg;
+            if (pkg.includes('freefire')) opt.selected = true;
+            dd.appendChild(opt);
+          });
+        }
       }
     });
   </script>

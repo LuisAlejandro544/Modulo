@@ -7,10 +7,10 @@
   <style>
     /* Estilos de Ajustes Nativos Android (Material You / Dark UI) */
     :root {
-      --bg-canvas: #0b0f19;
-      --bg-surface: #121826;
-      --bg-card: #182235;
-      --bg-card-active: #1e2c45;
+      --bg-canvas: #090d16;
+      --bg-surface: #101726;
+      --bg-card: #162032;
+      --bg-card-active: #1d2a42;
       --primary: #38bdf8;
       --primary-dim: rgba(56, 189, 248, 0.15);
       --emerald: #34d399;
@@ -18,11 +18,10 @@
       --amber: #fbbf24;
       --amber-dim: rgba(251, 191, 36, 0.15);
       --rose: #f87171;
-      --rose-dim: rgba(248, 113, 113, 0.15);
-      --border: #223048;
+      --border: #1e293b;
       --text-main: #f8fafc;
       --text-muted: #94a3b8;
-      --radius-lg: 18px;
+      --radius-lg: 16px;
       --radius-md: 12px;
     }
     * {
@@ -45,7 +44,7 @@
 
     /* Barra Superior Nativa (App Bar) */
     .app-bar {
-      padding: 16px 16px 12px;
+      padding: 14px 16px 12px;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -56,7 +55,7 @@
       z-index: 50;
     }
     .app-title {
-      font-size: 17px;
+      font-size: 16px;
       font-weight: 800;
       letter-spacing: -0.3px;
       display: flex;
@@ -66,19 +65,18 @@
     .app-chip {
       font-size: 10px;
       font-weight: 700;
-      padding: 4px 8px;
+      padding: 3px 8px;
       border-radius: 999px;
       background: var(--primary-dim);
       color: var(--primary);
       border: 1px solid rgba(56, 189, 248, 0.3);
       text-transform: uppercase;
-      letter-spacing: 0.5px;
     }
 
-    /* Navegación por Apartados Nativos (Segmented Tabs) */
+    /* Barra de Apartados Nativos */
     .tab-bar {
       display: flex;
-      padding: 10px 16px;
+      padding: 8px 16px;
       gap: 6px;
       background: var(--bg-surface);
       border-bottom: 1px solid var(--border);
@@ -97,16 +95,15 @@
       align-items: center;
       justify-content: center;
       gap: 5px;
-      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: all 0.2s ease;
     }
     .tab-btn.active {
       background: var(--primary-dim);
       color: var(--primary);
       border-color: rgba(56, 189, 248, 0.35);
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
     }
 
-    /* Contenedor de Apartados */
+    /* Área de Contenido */
     .content-area {
       flex: 1;
       padding: 16px;
@@ -114,13 +111,13 @@
     }
     .tab-pane {
       display: none;
-      animation: fadeIn 0.25s ease-out;
+      animation: fadeIn 0.2s ease-out;
     }
     .tab-pane.active {
       display: block;
     }
     @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(6px); }
+      from { opacity: 0; transform: translateY(4px); }
       to { opacity: 1; transform: translateY(0); }
     }
 
@@ -131,7 +128,7 @@
       border-radius: var(--radius-lg);
       padding: 16px;
       margin-bottom: 14px;
-      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
     }
     .card-title {
       font-size: 14px;
@@ -154,14 +151,11 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 14px;
+      padding: 12px 14px;
       background: var(--bg-card);
       border-radius: var(--radius-md);
       border: 1px solid var(--border);
       margin-bottom: 10px;
-    }
-    .setting-info {
-      padding-right: 12px;
     }
     .setting-name {
       font-size: 13px;
@@ -176,49 +170,24 @@
     .toggle {
       position: relative;
       display: inline-block;
-      width: 48px;
+      width: 46px;
       height: 26px;
       flex-shrink: 0;
     }
-    .toggle input {
-      opacity: 0;
-      width: 0;
-      height: 0;
-    }
+    .toggle input { opacity: 0; width: 0; height: 0; }
     .slider {
-      position: absolute;
-      cursor: pointer;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background-color: #334155;
-      transition: .25s ease;
-      border-radius: 34px;
+      position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #334155; transition: .25s ease; border-radius: 34px;
     }
     .slider:before {
-      position: absolute;
-      content: "";
-      height: 20px;
-      width: 20px;
-      left: 3px;
-      bottom: 3px;
-      background-color: white;
-      transition: .25s ease;
-      border-radius: 50%;
+      position: absolute; content: ""; height: 20px; width: 20px; left: 3px; bottom: 3px;
+      background-color: white; transition: .25s ease; border-radius: 50%;
     }
-    input:checked + .slider {
-      background-color: #0284c7;
-    }
-    input:checked + .slider:before {
-      transform: translateX(22px);
-    }
+    input:checked + .slider { background-color: #0284c7; }
+    input:checked + .slider:before { transform: translateX(20px); }
 
-    /* Selector de Tarjetas para Modo Batata */
-    .option-grid {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      margin-bottom: 14px;
-    }
-    .option-card {
+    /* Tarjetas de Selección de Escala */
+    .scale-card {
       border: 1px solid var(--border);
       background: var(--bg-card);
       padding: 12px 14px;
@@ -227,55 +196,50 @@
       align-items: center;
       justify-content: space-between;
       cursor: pointer;
+      margin-bottom: 8px;
       transition: all 0.2s ease;
     }
-    .option-card.selected {
+    .scale-card.selected {
       border-color: var(--primary);
       background: var(--primary-dim);
     }
-    .option-left {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    .option-icon {
-      font-size: 20px;
-    }
-    .option-title {
+    .scale-title {
       font-size: 13px;
       font-weight: 700;
       color: var(--text-main);
     }
-    .option-meta {
+    .scale-meta {
       font-size: 11px;
       color: var(--text-muted);
-    }
-    .radio-circle {
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      border: 2px solid #475569;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .option-card.selected .radio-circle {
-      border-color: var(--primary);
-      background: var(--primary);
-    }
-    .radio-inner {
-      width: 8px;
-      height: 8px;
-      background: white;
-      border-radius: 50%;
-      display: none;
-    }
-    .option-card.selected .radio-inner {
-      display: block;
+      margin-top: 2px;
     }
 
-    /* Selector de Juego */
-    .pkg-selector {
+    /* Chips de Selección Rápida de Juegos */
+    .game-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+    .game-chip {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 5px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .game-chip:active, .game-chip.active {
+      background: var(--primary-dim);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    /* Inputs y Selectores */
+    .input-box {
       width: 100%;
       background: var(--bg-card);
       color: var(--text-main);
@@ -285,10 +249,13 @@
       font-size: 12px;
       font-weight: 600;
       outline: none;
-      margin-bottom: 14px;
+      margin-bottom: 12px;
+    }
+    .input-box:focus {
+      border-color: var(--primary);
     }
 
-    /* Botones Nativos */
+    /* Botones */
     .btn {
       width: 100%;
       padding: 12px;
@@ -300,46 +267,28 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
-      transition: transform 0.1s, opacity 0.2s;
+      gap: 6px;
+      transition: transform 0.1s;
     }
-    .btn:active {
-      transform: scale(0.98);
-    }
-    .btn-primary {
-      background: #0284c7;
-      color: white;
-    }
-    .btn-secondary {
-      background: #1e293b;
-      color: var(--text-main);
-      border: 1px solid var(--border);
-      margin-top: 8px;
-    }
+    .btn:active { transform: scale(0.98); }
+    .btn-primary { background: #0284c7; color: white; margin-bottom: 8px; }
+    .btn-secondary { background: #1e293b; color: var(--text-main); border: 1px solid var(--border); margin-top: 6px; }
 
-    /* Banner Informativo y de Seguridad */
+    /* Banners */
     .banner {
       display: flex;
       align-items: flex-start;
-      gap: 10px;
-      padding: 12px;
+      gap: 8px;
+      padding: 10px 12px;
       border-radius: var(--radius-md);
       font-size: 11px;
       line-height: 1.45;
       margin-bottom: 12px;
     }
-    .banner-warning {
-      background: var(--amber-dim);
-      border: 1px solid rgba(251, 191, 36, 0.3);
-      color: #fde68a;
-    }
-    .banner-success {
-      background: var(--emerald-dim);
-      border: 1px solid rgba(52, 211, 153, 0.3);
-      color: #a7f3d0;
-    }
+    .banner-warning { background: var(--amber-dim); border: 1px solid rgba(251, 191, 36, 0.3); color: #fde68a; }
+    .banner-success { background: var(--emerald-dim); border: 1px solid rgba(52, 211, 153, 0.3); color: #a7f3d0; }
 
-    /* Grid de Diagnóstico */
+    /* Métricas */
     .metric-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -352,29 +301,18 @@
       border-radius: var(--radius-md);
       padding: 10px;
     }
-    .metric-k {
-      font-size: 10px;
-      text-transform: uppercase;
-      font-weight: 700;
-      color: var(--text-muted);
-    }
-    .metric-v {
-      font-size: 13px;
-      font-weight: 800;
-      color: var(--text-main);
-      margin-top: 2px;
-    }
+    .metric-k { font-size: 10px; text-transform: uppercase; font-weight: 700; color: var(--text-muted); }
+    .metric-v { font-size: 12px; font-weight: 800; color: var(--text-main); margin-top: 2px; }
 
-    /* Consola Integrada */
     .console-card {
       background: #060912;
       border: 1px solid var(--border);
       border-radius: var(--radius-md);
       padding: 10px 12px;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+      font-family: monospace;
       font-size: 11px;
       color: #38bdf8;
-      max-height: 160px;
+      max-height: 140px;
       overflow-y: auto;
       white-space: pre-wrap;
     }
@@ -386,12 +324,12 @@
   <header class="app-bar">
     <div class="app-title">
       <span>AX Mali Core</span>
-      <span class="app-chip">Android Native UI</span>
+      <span class="app-chip">v1.2</span>
     </div>
-    <span id="globalArchBadge" style="font-size: 11px; color: #34d399; font-weight: 700;">Mali Engine</span>
+    <span id="globalArchBadge" style="font-size: 11px; color: #34d399; font-weight: 700;">Zero Slop</span>
   </header>
 
-  <!-- Navegación por Apartados (Modular, sin amontonar) -->
+  <!-- Navegación Modular por Apartados -->
   <nav class="tab-bar">
     <button class="tab-btn active" onclick="switchTab('touch')">
       <span>⚡</span>
@@ -407,7 +345,7 @@
     </button>
   </nav>
 
-  <!-- Área de Contenido Principal -->
+  <!-- Área de Contenido -->
   <main class="content-area">
 
     <!-- =================================================================== -->
@@ -416,17 +354,17 @@
     <section id="tab-touch" class="tab-pane active">
       <div class="card">
         <div class="card-title">
-          <span>Respuesta Táctil & Sensibilidad</span>
+          <span>Respuesta Táctil & Alzar Mira</span>
           <span id="touchPill" style="font-size: 11px; font-weight: 700; color: #94a3b8;">Inactivo</span>
         </div>
         <p class="card-desc">
-          Reduce los tiempos de espera del InputDispatcher y ajusta la sensibilidad para levantar mira de inmediato en juegos de disparo.
+          Reduce Touch Slop a 1px para registrar el dedo al instante y elimina la contrapresión de SurfaceFlinger para entrega inmediata de frames a la GPU Mali.
         </p>
 
         <div class="setting-item">
-          <div class="setting-info">
-            <div class="setting-name">Touch Boost Ultrarrápido</div>
-            <div class="setting-sub">Timeout 250ms • Puntero Nivel 7</div>
+          <div>
+            <div class="setting-name">Ultra Sensibilidad & Zero Delay</div>
+            <div class="setting-sub">Slop 1px • No Backpressure • Pointer 7</div>
           </div>
           <label class="toggle">
             <input type="checkbox" id="touchToggle" onchange="toggleTouch(this.checked)">
@@ -435,6 +373,14 @@
         </div>
 
         <div class="metric-grid">
+          <div class="metric-box">
+            <div class="metric-k">Touch Slop</div>
+            <div class="metric-v" id="txtSlop">Estándar (8-16px)</div>
+          </div>
+          <div class="metric-box">
+            <div class="metric-k">SurfaceFlinger</div>
+            <div class="metric-v" id="txtBP">Con contrapresión</div>
+          </div>
           <div class="metric-box">
             <div class="metric-k">Input Delay</div>
             <div class="metric-v" id="txtDelay">400 ms (Normal)</div>
@@ -462,57 +408,79 @@
           <span id="sdkStatusChip" style="font-size: 11px; font-weight: 700; color: #34d399;">Verificando...</span>
         </div>
         <p class="card-desc">
-          Reduce la escala de renderizado interno del juego en la GPU Mali para liberar carga de sombreado y conseguir FPS máximos sin riesgo de baneo ni daño al sistema.
+          Baja la escala de renderizado a nivel de SurfaceFlinger y anula los game boosters del fabricante (MIUI Game Turbo / Realme Game Space) para forzar los FPS máximos en Mali.
         </p>
 
-        <!-- Banner de Regla de Seguridad Android 12+ -->
+        <!-- Banner de Android 12+ -->
         <div id="sdkBanner" class="banner banner-warning">
           <span>⚠️</span>
-          <span id="sdkBannerText">Exclusivo a partir de Android 12 (API 31). Utiliza el escalador nativo de Google sin tocar resolución de pantalla del sistema.</span>
+          <span id="sdkBannerText">Exclusivo Android 12+ (SDK 31+). En versiones inferiores se bloquea por seguridad para proteger tu pantalla.</span>
         </div>
 
-        <!-- Selector de Juego Objetivo -->
+        <!-- Selección de Juego -->
         <label style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 6px;">
-          Juego Objetivo
+          Selecciona o Escribe el Paquete del Juego
         </label>
-        <select id="gamePkgSelect" class="pkg-selector">
-          <option value="com.dts.freefireth">Free Fire (com.dts.freefireth)</option>
-          <option value="com.dts.freefiremax">Free Fire MAX (com.dts.freefiremax)</option>
-          <option value="com.tencent.ig">PUBG Mobile (com.tencent.ig)</option>
-          <option value="com.activision.callofduty.shooter">Call of Duty Mobile</option>
+
+        <!-- Selector de Apps de Usuario Detectadas -->
+        <select id="userAppSelect" class="input-box" onchange="onSelectAppFromDropdown(this.value)">
+          <option value="">Escaneando apps de tu teléfono...</option>
         </select>
 
-        <!-- Selector de Escala de Renderizado -->
-        <div class="option-grid">
-          <!-- Opción 1: Modo Batata Extremo (50%) -->
-          <div class="option-card selected" id="opt-potato" onclick="selectScale('0.5', 'opt-potato')">
-            <div class="option-left">
-              <span class="option-icon">🥔</span>
-              <div>
-                <div class="option-title">Modo Batata Extremo (50%)</div>
-                <div class="option-meta">Renderizado estilo cartón • +30 FPS estables en Mali</div>
-              </div>
-            </div>
-            <div class="radio-circle"><div class="radio-inner"></div></div>
-          </div>
+        <!-- Chips de Acceso Rápido -->
+        <div class="game-chips">
+          <span class="game-chip active" onclick="setTargetPkg('com.dts.freefireth', this)">Free Fire</span>
+          <span class="game-chip" onclick="setTargetPkg('com.dts.freefiremax', this)">FF MAX</span>
+          <span class="game-chip" onclick="setTargetPkg('com.tencent.ig', this)">PUBG</span>
+          <span class="game-chip" onclick="setTargetPkg('com.activision.callofduty.shooter', this)">CoD</span>
+          <span class="game-chip" onclick="setTargetPkg('com.roblox.client', this)">Roblox</span>
+          <span class="game-chip" onclick="setTargetPkg('com.netease.bloodstrike', this)">Blood Strike</span>
+        </div>
 
-          <!-- Opción 2: Modo Competitivo (70%) -->
-          <div class="option-card" id="opt-comp" onclick="selectScale('0.7', 'opt-comp')">
-            <div class="option-left">
-              <span class="option-icon">⚡</span>
-              <div>
-                <div class="option-title">Modo Competitivo (70%)</div>
-                <div class="option-meta">Equilibrio perfecto entre visibilidad y fluidez</div>
-              </div>
-            </div>
-            <div class="radio-circle"><div class="radio-inner"></div></div>
+        <!-- Input Manual / Paquete Elegido -->
+        <input type="text" id="targetPkgInput" class="input-box" value="com.dts.freefireth" placeholder="com.ejemplo.juego">
+
+        <!-- Selector de Escala de Renderizado -->
+        <label style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 6px;">
+          Nivel de Gráficos Batata
+        </label>
+
+        <!-- Opción 1: 25% Extremo Ultra -->
+        <div class="scale-card" id="opt-25" onclick="selectScale('0.25', 'opt-25')">
+          <div>
+            <div class="scale-title">🥔 Modo Batata Extremo Ultra (25%)</div>
+            <div class="scale-meta">Gráficos ultra planos / cartón puro • Libera 85% de GPU Mali</div>
           </div>
+          <span>🔥</span>
+        </div>
+
+        <!-- Opción 2: 50% Batata Clásico -->
+        <div class="scale-card selected" id="opt-50" onclick="selectScale('0.5', 'opt-50')">
+          <div>
+            <div class="scale-title">🥔 Modo Batata Clásico (50%)</div>
+            <div class="scale-meta">Texturas plastilina estándar • +30 FPS estables en tiroteos</div>
+          </div>
+          <span>⚡</span>
+        </div>
+
+        <!-- Opción 3: 70% Competitivo -->
+        <div class="scale-card" id="opt-70" onclick="selectScale('0.7', 'opt-70')">
+          <div>
+            <div class="scale-title">⚡ Modo Competitivo (70%)</div>
+            <div class="scale-meta">Equilibrio perfecto entre visión de enemigos y fluidez</div>
+          </div>
+          <span>🎯</span>
         </div>
 
         <!-- Botones de Acción -->
-        <button class="btn btn-primary" id="btnApplyPotato" onclick="applyPotatoMode()">
+        <button class="btn btn-primary" id="btnApplyRestart" onclick="applyPotatoMode(true)">
           <span>🚀</span>
-          <span>Aplicar Modo Batata</span>
+          <span>Aplicar y Reiniciar Juego (Recomendado)</span>
+        </button>
+
+        <button class="btn btn-secondary" onclick="applyPotatoMode(false)">
+          <span>⚡</span>
+          <span>Aplicar en Caliente (Sin reiniciar)</span>
         </button>
 
         <button class="btn btn-secondary" onclick="restoreNativeGraphics()">
@@ -542,11 +510,11 @@
             <div class="metric-v" id="diagAndroid">Consultando...</div>
           </div>
           <div class="metric-box">
-            <div class="metric-k">GPU Mali</div>
-            <div class="metric-v" style="color: #34d399;">Compatible</div>
+            <div class="metric-k">Anulación GameBooster</div>
+            <div class="metric-v" style="color: #34d399;">Activa (DeviceConfig)</div>
           </div>
           <div class="metric-box">
-            <div class="metric-k">Auditoría Segura</div>
+            <div class="metric-k">Seguridad Sistema</div>
             <div class="metric-v" style="color: #38bdf8;">0 Violaciones</div>
           </div>
         </div>
@@ -559,34 +527,39 @@
   </main>
 
   <script>
-    // Variable de escala seleccionada para Modo Batata
     let selectedScaleFactor = "0.5";
 
-    // Navegación nativa por pestañas (muestra exclusivamente el apartado activo)
     function switchTab(tabName) {
       document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
       document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
 
       const targetPane = document.getElementById('tab-' + tabName);
-      if (targetPane) {
-        targetPane.classList.add('active');
-      }
+      if (targetPane) targetPane.classList.add('active');
 
       const activeBtn = Array.from(document.querySelectorAll('.tab-btn')).find(b => b.getAttribute('onclick').includes(tabName));
-      if (activeBtn) {
-        activeBtn.classList.add('active');
-      }
+      if (activeBtn) activeBtn.classList.add('active');
     }
 
-    // Selección de escala en el selector nativo
     function selectScale(factor, elementId) {
       selectedScaleFactor = factor;
-      document.querySelectorAll('.option-card').forEach(el => el.classList.remove('selected'));
+      document.querySelectorAll('.scale-card').forEach(el => el.classList.remove('selected'));
       const activeEl = document.getElementById(elementId);
       if (activeEl) activeEl.classList.add('selected');
     }
 
-    // Bridge de ejecución con AxManager (ksu.exec o Axeron)
+    function setTargetPkg(pkg, chipElement) {
+      document.getElementById('targetPkgInput').value = pkg;
+      document.querySelectorAll('.game-chip').forEach(c => c.classList.remove('active'));
+      if (chipElement) chipElement.classList.add('active');
+    }
+
+    function onSelectAppFromDropdown(pkg) {
+      if (pkg) {
+        document.getElementById('targetPkgInput').value = pkg;
+        document.querySelectorAll('.game-chip').forEach(c => c.classList.remove('active'));
+      }
+    }
+
     async function runShell(command) {
       const log = document.getElementById('logOut');
       log.textContent += `\\n> ${command.trim().slice(0, 50)}...\\n`;
@@ -595,7 +568,7 @@
         try {
           const res = await ksu.exec(command);
           const out = (res.stdout || '') + (res.stderr || '');
-          log.textContent += out || `Comando ejecutado con código: ${res.errno}\\n`;
+          log.textContent += out || `Código de salida: ${res.errno}\\n`;
           log.scrollTop = log.scrollHeight;
           return res.stdout || out;
         } catch (e) {
@@ -611,14 +584,15 @@
           log.textContent += `Error Axeron: ${e.message}\\n`;
         }
       } else {
-        log.textContent += `[Modo Navegador / Vista Previa]\\nComando: ${command}\\n`;
+        log.textContent += `[Vista Previa Navegador]\\nComando: ${command}\\n`;
       }
       return null;
     }
 
-    // Control de Touch Boost
     async function toggleTouch(enable) {
       const pill = document.getElementById('touchPill');
+      const txtSlop = document.getElementById('txtSlop');
+      const txtBP = document.getElementById('txtBP');
       const txtDelay = document.getElementById('txtDelay');
       const txtPointer = document.getElementById('txtPointer');
 
@@ -633,9 +607,13 @@
         if [ "${action}" = "enable" ]; then
           settings put secure long_press_timeout 250
           settings put system pointer_speed 7
+          setprop view.touch_slop 1
+          setprop debug.sf.disable_backpressure 1
         else
           settings put secure long_press_timeout 400
           settings put system pointer_speed 0
+          setprop view.touch_slop ""
+          setprop debug.sf.disable_backpressure ""
         fi
       `;
 
@@ -643,15 +621,23 @@
       await runShell(cmd);
 
       if (enable) {
-        pill.textContent = "Activo (250ms)";
+        pill.textContent = "Activo (Slop 1px)";
         pill.style.color = "#34d399";
-        txtDelay.textContent = "250 ms (Ultrarrápido)";
+        txtSlop.textContent = "1 px (Instantáneo)";
+        txtSlop.style.color = "#34d399";
+        txtBP.textContent = "Zero Backpressure";
+        txtBP.style.color = "#34d399";
+        txtDelay.textContent = "250 ms";
         txtDelay.style.color = "#34d399";
         txtPointer.textContent = "Nivel 7 (Máximo)";
         txtPointer.style.color = "#34d399";
       } else {
         pill.textContent = "Inactivo";
         pill.style.color = "#94a3b8";
+        txtSlop.textContent = "Estándar (8-16px)";
+        txtSlop.style.color = "#f8fafc";
+        txtBP.textContent = "Con contrapresión";
+        txtBP.style.color = "#f8fafc";
         txtDelay.textContent = "400 ms (Normal)";
         txtDelay.style.color = "#f8fafc";
         txtPointer.textContent = "Nivel 0";
@@ -659,19 +645,22 @@
       }
     }
 
-    // Aplicar Modo Batata (Android 12+)
-    async function applyPotatoMode() {
-      const pkg = document.getElementById('gamePkgSelect').value;
+    async function applyPotatoMode(shouldRestart) {
+      const pkg = document.getElementById('targetPkgInput').value.trim() || 'com.dts.freefireth';
+      const restartParam = shouldRestart ? "1" : "0";
       const cmd = `
         for S in \\
           "$AXERONDIR/plugins/ax_mali_core_optimizer/scripts/surface_tweak.sh" \\
           "$MODDIR/scripts/surface_tweak.sh" \\
           "./scripts/surface_tweak.sh"; do
-          if [ -f "$S" ]; then sh "$S" enable ${selectedScaleFactor} ${pkg}; exit 0; fi
+          if [ -f "$S" ]; then sh "$S" enable ${selectedScaleFactor} ${pkg} ${restartParam}; exit 0; fi
         done
-        # Fallback nativo directo
+        cmd game reset-mode ${pkg}
         cmd game mode performance ${pkg}
-        device_config put game_overlay ${pkg} "mode=2,downscaleFactor=${selectedScaleFactor}:fps=60"
+        device_config set_sync_disabled_for_tests persistent
+        device_config put game_overlay ${pkg} "mode=2,downscaleFactor=${selectedScaleFactor}:fps=60:useAngle=false"
+        setprop debug.mali.render_scale ${selectedScaleFactor}
+        if [ "${restartParam}" = "1" ]; then am force-stop ${pkg}; fi
         echo "SUCCESS"
       `;
 
@@ -680,13 +669,16 @@
         alert("Bloqueo de seguridad: Tu dispositivo no cuenta con Android 12+. Modo cancelado para proteger tu pantalla.");
         return;
       }
-      document.getElementById('sdkStatusChip').textContent = `Activo (${selectedScaleFactor === '0.5' ? 'Batata 50%' : '70%'})`;
+      let scaleLabel = selectedScaleFactor === '0.25' ? 'Batata 25%' : (selectedScaleFactor === '0.5' ? 'Batata 50%' : '70%');
+      document.getElementById('sdkStatusChip').textContent = `Activo (${scaleLabel})`;
       document.getElementById('sdkStatusChip').style.color = "#34d399";
+      if (shouldRestart) {
+        alert(`¡Modo Batata (${scaleLabel}) aplicado a ${pkg}! El juego se cerró para arrancar con gráficos reducidos en cuanto lo abras.`);
+      }
     }
 
-    // Restaurar Gráficos Nativos
     async function restoreNativeGraphics() {
-      const pkg = document.getElementById('gamePkgSelect').value;
+      const pkg = document.getElementById('targetPkgInput').value.trim() || 'com.dts.freefireth';
       const cmd = `
         for S in \\
           "$AXERONDIR/plugins/ax_mali_core_optimizer/scripts/surface_tweak.sh" \\
@@ -696,13 +688,36 @@
         done
         cmd game mode standard ${pkg}
         device_config delete game_overlay ${pkg}
+        device_config set_sync_disabled_for_tests none
+        setprop debug.mali.render_scale ""
       `;
       await runShell(cmd);
       document.getElementById('sdkStatusChip').textContent = "Gráficos Nativos (100%)";
       document.getElementById('sdkStatusChip').style.color = "#38bdf8";
+      alert("Gráficos nativos restaurados al 100%.");
     }
 
-    // Comprobación de estado general y versión de Android
+    // Escanear apps instaladas del usuario en el teléfono
+    async function scanInstalledApps() {
+      const dropdown = document.getElementById('userAppSelect');
+      const res = await runShell('pm list packages -3 2>/dev/null | sed "s/package://" | sort');
+      if (res && res.includes('.')) {
+        const pkgs = res.trim().split('\\n').filter(p => p.length > 2 && !p.startsWith('>'));
+        if (pkgs.length > 0) {
+          dropdown.innerHTML = '<option value="">-- Selecciona un juego/app de tu teléfono --</option>';
+          pkgs.forEach(pkg => {
+            const opt = document.createElement('option');
+            opt.value = pkg;
+            opt.textContent = pkg;
+            if (pkg.includes('freefire')) opt.selected = true;
+            dropdown.appendChild(opt);
+          });
+          return;
+        }
+      }
+      dropdown.innerHTML = '<option value="">(Escribe el paquete abajo o usa los botones rápidos)</option>';
+    }
+
     async function checkAllStatus() {
       const res = await runShell('getprop ro.build.version.sdk; getprop ro.product.cpu.abi; getprop ro.build.version.release');
       if (res) {
@@ -717,26 +732,25 @@
         const chip = document.getElementById('sdkStatusChip');
         const banner = document.getElementById('sdkBanner');
         const bannerTxt = document.getElementById('sdkBannerText');
-        const btnApply = document.getElementById('btnApplyPotato');
 
         if (sdk >= 31) {
           chip.textContent = "Android 12+ (Compatible)";
           chip.style.color = "#34d399";
           banner.className = "banner banner-success";
-          bannerTxt.textContent = `Tu teléfono tiene Android ${rel} (API ${sdk}). El escalador nativo de Google está habilitado con máxima seguridad.`;
+          bannerTxt.textContent = `Teléfono con Android ${rel} (API ${sdk}). El escalador y la anulación de Game Booster están habilitados.`;
         } else if (sdk > 0) {
           chip.textContent = "Bloqueado (< Android 12)";
           chip.style.color = "#f87171";
           banner.className = "banner banner-warning";
-          bannerTxt.textContent = `Android ${rel} detectado. Por seguridad estricta, el Modo Batata está bloqueado para no arriesgar la pantalla de tu teléfono.`;
-          btnApply.disabled = true;
-          btnApply.style.opacity = "0.5";
+          bannerTxt.textContent = `Android ${rel} detectado. Por seguridad estricta, el Modo Batata está bloqueado para no dañar tu pantalla.`;
+          document.getElementById('btnApplyRestart').disabled = true;
         }
       }
     }
 
     window.addEventListener('DOMContentLoaded', () => {
       checkAllStatus();
+      scanInstalledApps();
     });
   </script>
 </body>

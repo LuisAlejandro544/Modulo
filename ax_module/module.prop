@@ -1,15 +1,11 @@
 # ==============================================================================
 # Propiedades del Módulo para AX Manager / Axeron
 # ==============================================================================
-# Este archivo define la identidad, versión y compatibilidad del módulo para
-# procesadores gráficos Mali. Es leído por el gestor de módulos AxManager en Android.
-# ==============================================================================
-
 id=ax_mali_core_optimizer
 name=Mali GPU Core Engine
-version=v1.0.0-base
-versionCode=100
+version=v1.2.0
+versionCode=120
 author=AX Mobile Community
-description=Módulo base para optimización y control de GPU Mali en dispositivos móviles (32-bit y 64-bit). Compatible con AX Manager sin root y con root.
-axeronPlugin=30000
+description=Control de GPU Mali: Sensibilidad competitiva (Slop 1px, Zero Backpressure) y Modo Batata exclusivo Android 12+ (25%, 50%, 70%) con anulación de Game Booster.
+axeronPlugin=1000
 minApi=26

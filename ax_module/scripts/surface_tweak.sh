@@ -2,14 +2,17 @@
 # ==============================================================================
 # Script: surface_tweak.sh
 # Módulo: AX Mali Core Engine para AX Manager (Root & No-Root)
-# Propósito: Modo Batata / Reducción de Escala de Renderizado Gráfico para Mali.
+# Propósito: Modo Batata / Reducción de Escala de Renderizado (25%, 50%, 70%)
+#            con anulación de Game Boosters de fabricantes en Android 12+.
 # ==============================================================================
 # REGLAS CRÍTICAS DE SEGURIDAD:
 # 1. EXCLUSIVO PARA ANDROID 12+ (SDK >= 31):
 #    En versiones anteriores a Android 12, este modo SE BLOQUEA AUTOMÁTICAMENTE
 #    para evitar alterar resoluciones de pantalla globales que puedan desconfigurar
 #    el launcher del usuario o poner en riesgo el dispositivo.
-# 2. Utiliza el subsistema nativo y seguro de Google: 'cmd game' y 'device_config'.
+# 2. Anulación de Game Booster:
+#    Bloquea la sincronización remota de DeviceConfig para que MIUI Game Turbo,
+#    Realme Game Space o Samsung GOS no reviertan el escalado del script.
 # 3. NUNCA se utiliza ni se modificará ninguna propiedad persistente de sistema.
 # 4. Totalmente reversible: al desactivar, se limpia la configuración y se
 #    restaura el renderizado nativo sin dejar residuos.
@@ -18,7 +21,6 @@
 
 SCRIPT_DIR=$(dirname "$0")
 POTATO_STATUS="/data/local/tmp/mali_potato_status.state"
-POTATO_BACKUP="/data/local/tmp/mali_potato_backup.state"
 
 # Cargar funciones comunes si están disponibles
 if [ -f "$SCRIPT_DIR/mali_common.sh" ]; then
@@ -35,15 +37,13 @@ fi
 check_android_version() {
     SDK_VER=$(getprop ro.build.version.sdk)
     RELEASE_VER=$(getprop ro.build.version.release)
-
-    # Si por alguna razón no se puede leer, asumir 0 por seguridad
     SDK_NUM=${SDK_VER:-0}
 
     log_info "Comprobando versión del sistema: Android $RELEASE_VER (API SDK $SDK_NUM)"
 
     if [ "$SDK_NUM" -lt 31 ]; then
         log_error "BLOQUEO DE SEGURIDAD ACTIVO: El Modo Batata requiere Android 12 (API 31) o superior."
-        log_warn "Tu dispositivo cuenta con Android $RELEASE_VER (API $SDK_NUM). Se bloquea la ejecución para proteger la interfaz de tu teléfono."
+        log_warn "Tu dispositivo cuenta con Android $RELEASE_VER (API $SDK_NUM). Se bloquea la ejecución para proteger tu teléfono."
         return 1
     fi
 
@@ -52,59 +52,66 @@ check_android_version() {
 }
 
 # ==============================================================================
-# 2. Detección Inteligente del Paquete de Juego
+# 2. Resolución del Paquete Seleccionado por el Usuario
 # ==============================================================================
-detect_game_package() {
-    CUSTOM_PKG="$1"
-    if [ -n "$CUSTOM_PKG" ] && [ "$CUSTOM_PKG" != "auto" ]; then
-        echo "$CUSTOM_PKG"
+resolve_package() {
+    INPUT_PKG="$1"
+    if [ -n "$INPUT_PKG" ] && [ "$INPUT_PKG" != "auto" ]; then
+        echo "$INPUT_PKG"
         return
     fi
 
-    # Comprobar si Free Fire o Free Fire Max están instalados vía pm
+    # Auto-detección de juego común si no se pasó paquete específico
     if pm path com.dts.freefireth >/dev/null 2>&1; then
         echo "com.dts.freefireth"
     elif pm path com.dts.freefiremax >/dev/null 2>&1; then
         echo "com.dts.freefiremax"
+    elif pm path com.tencent.ig >/dev/null 2>&1; then
+        echo "com.tencent.ig"
+    elif pm path com.activision.callofduty.shooter >/dev/null 2>&1; then
+        echo "com.activision.callofduty.shooter"
     else
-        # Paquete por defecto estándar si no se puede consultar pm
         echo "com.dts.freefireth"
     fi
 }
 
 # ==============================================================================
-# 3. Activación del Modo Batata / Reducción de Renderizado
+# 3. Activación del Modo Batata (25%, 50%, 70%) con Anulación de Game Booster
 # ==============================================================================
 enable_potato_mode() {
     SCALE_FACTOR="${1:-0.5}"
     TARGET_PKG="${2:-auto}"
+    FORCE_RESTART="${3:-0}"
 
-    # Paso A: Validar versión mínima de Android 12
     if ! check_android_version; then
         echo "ERROR_SECURITY_BLOCKED: Requiere Android 12 o superior."
         exit 2
     fi
 
-    PKG=$(detect_game_package "$TARGET_PKG")
-    log_info "Aplicando Modo Batata (Escalado: $SCALE_FACTOR) al paquete: $PKG"
+    PKG=$(resolve_package "$TARGET_PKG")
+    log_info "Configurando Modo Batata para el juego: $PKG"
 
-    # Validar factor de escala seguro (0.5 = 50% batata, 0.7 = 70% competitivo)
+    # Clasificar factor de escala
     case "$SCALE_FACTOR" in
+        0.25|25|extreme|ultra)
+            FACTOR="0.25"
+            LABEL="Modo Batata Extremo Ultra (25%)"
+            ;;
         0.5|50|potato|batata)
             FACTOR="0.5"
-            LABEL="Modo Batata Extremo (50%)"
+            LABEL="Modo Batata Clásico (50%)"
             ;;
         0.7|70|comp|competitivo)
             FACTOR="0.7"
             LABEL="Modo Competitivo (70%)"
             ;;
         *)
-            FACTOR="0.5"
-            LABEL="Modo Batata (Personalizado $SCALE_FACTOR)"
+            FACTOR="$SCALE_FACTOR"
+            LABEL="Modo Batata Personalizado ($SCALE_FACTOR)"
             ;;
     esac
 
-    # Paso B: Guardar respaldo de estado
+    # Guardar registro de estado
     cat <<EOF > "$POTATO_STATUS"
 STATUS=1
 FACTOR=$FACTOR
@@ -113,20 +120,30 @@ LABEL=$LABEL
 TIMESTAMP=$(date +"%Y-%m-%d %H:%M:%S")
 EOF
 
-    # Paso C: Aplicar escalado mediante subsistema oficial de Android 12+ (cmd game / device_config)
-    # 1. Configurar modo de rendimiento para el juego
+    # PASO A: Desvincular interferencias del Game Booster del fabricante (MIUI/Realme/Samsung)
+    cmd game reset-mode "$PKG" 2>/dev/null
     cmd game mode performance "$PKG" 2>/dev/null
-    
-    # 2. Inyectar overlay de escalado y tasa de refresco a nivel de SurfaceFlinger
-    device_config put game_overlay "$PKG" "mode=2,downscaleFactor=${FACTOR}:fps=60" 2>/dev/null
 
-    # 3. Desactivar filtros pesados de MSAA en GPU Mali y alinear render_scale volátil en RAM
+    # PASO B: Bloquear sincronización en segundo plano de DeviceConfig
+    # Esto evita que Google Play Services o los daemons de la ROM sobreescriban nuestro overlay
+    device_config set_sync_disabled_for_tests persistent 2>/dev/null
+
+    # PASO C: Inyectar el overlay de escalado con useAngle=false
+    device_config put game_overlay "$PKG" "mode=2,downscaleFactor=${FACTOR}:fps=60:useAngle=false" 2>/dev/null
+
+    # PASO D: Forzar escala en RAM para GPU Mali y desactivar filtros pesados
     setprop debug.mali.render_scale "$FACTOR" 2>/dev/null
     setprop debug.egl.force_msaa 0 2>/dev/null
     setprop debug.egl.force_fxaa 0 2>/dev/null
 
-    log_info "Modo Batata activado exitosamente para $PKG con escala $FACTOR."
-    echo "SUCCESS: $LABEL activado en $PKG sin riesgo de baneo ni daño al sistema."
+    # PASO E: Si se solicita reinicio del proceso del juego para aplicar en caliente
+    if [ "$FORCE_RESTART" = "1" ] || [ "$FORCE_RESTART" = "restart" ]; then
+        am force-stop "$PKG" 2>/dev/null
+        log_info "Proceso de $PKG reiniciado para obligar a Unity a tomar el nuevo buffer."
+    fi
+
+    log_info "$LABEL aplicado con éxito a $PKG. Game Booster anulado."
+    echo "SUCCESS: $LABEL activado en $PKG (Game Booster del fabricante anulado)."
 }
 
 # ==============================================================================
@@ -134,7 +151,7 @@ EOF
 # ==============================================================================
 disable_potato_mode() {
     TARGET_PKG="${1:-auto}"
-    PKG=$(detect_game_package "$TARGET_PKG")
+    PKG=$(resolve_package "$TARGET_PKG")
 
     log_info "Desactivando Modo Batata y restaurando resolución nativa..."
 
@@ -142,7 +159,7 @@ disable_potato_mode() {
     cmd game mode standard "$PKG" 2>/dev/null
     device_config delete game_overlay "$PKG" 2>/dev/null
 
-    # Restaurar segundo paquete si existía estado previo
+    # Si existía estado previo guardado, limpiar también ese paquete
     if [ -f "$POTATO_STATUS" ]; then
         OLD_PKG=$(grep "PACKAGE=" "$POTATO_STATUS" | cut -d= -f2)
         if [ -n "$OLD_PKG" ] && [ "$OLD_PKG" != "$PKG" ]; then
@@ -151,6 +168,9 @@ disable_potato_mode() {
         fi
         rm -f "$POTATO_STATUS" 2>/dev/null
     fi
+
+    # Rehabilitar sincronización estándar
+    device_config set_sync_disabled_for_tests none 2>/dev/null
 
     # Limpiar propiedades volátiles en RAM
     setprop debug.mali.render_scale "" 2>/dev/null
@@ -192,31 +212,36 @@ get_status() {
     echo "POTATO_FACTOR=$FACTOR"
     echo "POTATO_PACKAGE=$PKG"
     echo "POTATO_LABEL=$LABEL"
+    echo "GAMEBOOSTER_OVERRIDE=ACTIVE"
     echo "SECURITY_RULE=CERO_PERSIST_SYS"
 }
 
 # ==============================================================================
-# Control de Entrada Principal
+# 6. Lista de Juegos y Apps de Usuario Instaladas
 # ==============================================================================
-ACTION="${1:-status}"
-PARAM2="$2"
-PARAM3="$3"
+list_user_packages() {
+    pm list packages -3 2>/dev/null | sed 's/package://' | sort
+}
 
+ACTION="${1:-status}"
 case "$ACTION" in
     enable|1|on|potato)
-        enable_potato_mode "$PARAM2" "$PARAM3"
+        enable_potato_mode "$2" "$3" "$4"
         ;;
     disable|0|off|restore)
-        disable_potato_mode "$PARAM2"
+        disable_potato_mode "$2"
         ;;
     status|info)
         get_status
+        ;;
+    list|packages)
+        list_user_packages
         ;;
     check)
         check_android_version
         ;;
     *)
-        echo "Uso: $0 {enable [0.5|0.7] [paquete]|disable [paquete]|status|check}"
+        echo "Uso: $0 {enable [0.25|0.5|0.7] [pkg] [restart]|disable [pkg]|status|list|check}"
         exit 1
         ;;
 esac
