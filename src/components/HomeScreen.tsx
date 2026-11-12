@@ -76,19 +76,19 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, onOpenGuide 
             </h2>
             <p className="text-xs sm:text-sm text-slate-300 max-w-2xl leading-relaxed">
               Ejecutado a través de <code className="text-cyan-300 font-mono">touch_boost.sh</code> y controlado con un switch en el WebUI
-              de AxManager. Activa <strong>Glove Mode</strong> en el digitalizador, algoritmo <strong>VelocityTracker Impulse</strong> (1:1 sin inercia),
-              disuelve la fricción a <strong>0.005</strong> y sincroniza el <strong>Boost de CPU/DRAM MediaTek (GED & FPSGO)</strong>.
+              de AxManager. Ajusta <code className="text-cyan-300 font-mono">pointer_speed 7</code> y <code className="text-cyan-300 font-mono">long_press_timeout 250</code> (ADB/Root),
+              habilita <strong>Glove Mode</strong> sysfs, <strong>Zero Backpressure</strong> y sincroniza el <strong>Boost de CPU/DRAM MediaTek (GED &amp; FPSGO)</strong> en Root.
             </p>
           </div>
 
           <div className="bg-slate-950/80 p-4 rounded-xl border border-slate-800 shrink-0 text-xs space-y-1.5">
             <div className="flex items-center justify-between gap-4 text-slate-400">
-              <span>Rastreador:</span>
-              <span className="text-emerald-400 font-bold font-mono">Impulse (Sin inercia)</span>
+              <span>Puntero &amp; Toque:</span>
+              <span className="text-emerald-400 font-bold font-mono">speed 7 / 250ms</span>
             </div>
             <div className="flex items-center justify-between gap-4 text-slate-400">
-              <span>Fricción Scroll:</span>
-              <span className="text-cyan-400 font-bold font-mono">0.005 (Mantequilla)</span>
+              <span>Backpressure SF:</span>
+              <span className="text-cyan-400 font-bold font-mono">Desactivado (Root)</span>
             </div>
             <div className="flex items-center justify-between gap-4 text-slate-400">
               <span>MediaTek GED:</span>

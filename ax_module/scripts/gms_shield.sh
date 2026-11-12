@@ -3,35 +3,28 @@
 # Script: gms_shield.sh
 # Módulo: AX Mali Core Engine para AX Manager, KernelSU, APatch y Magisk
 # Propósito: Escudo Anti-Basura y Telemetría de Google Play Services (GMS Shield).
-#   - Bloquea servicios innecesarios de telemetría, analíticas, crash reporters
-#     y seguimiento publicitario que saturan la CPU y la RAM en segundo plano.
-#   - PRESERVA el 100% de funciones vitales:
-#       ✓ Login con cuenta Google intacto.
-#       ✓ Google Play Games intacto.
-#       ✓ Compras integradas (Google Play Billing) intactas.
-#       ✓ Notificaciones push (Firebase Cloud Messaging) intactas.
-#   - 100% Reversible: Guarda el estado previo y se restaura con un solo toque.
-# ==============================================================================
-# REGLAS CRÍTICAS DE SEGURIDAD:
-# - CERO propiedades permanentes en disco (100% volátil en memoria y pm settings).
-# - 100% Reversible: Respaldo en /data/local/tmp/mali_gms_backup.state.
-# - Compatible con arquitecturas 32-bit (armeabi-v7a) y 64-bit (arm64-v8a).
+#   - Desactiva paquetes secundarios de telemetría (feedback, partnersetup, etc.)
+#     y restringe RUN_IN_BACKGROUND en GMS (funciona en Root y ADB).
+#   - Desactiva componentes internos de Ads/Analytics de GMS (requiere Root en la
+#     mayoría de ROMs; verifica realmente qué se aplicó y guarda respaldo fiel).
+#   - Preserva Login de Google, Play Games, Play Store y FCM.
 # ==============================================================================
 
 SCRIPT_DIR=$(dirname "$0")
 BACKUP_STATE="/data/local/tmp/mali_gms_backup.state"
+DISABLED_PKGS_FILE="/data/local/tmp/mali_gms_disabled.pkgs"
+DISABLED_COMPS_FILE="/data/local/tmp/mali_gms_disabled.comps"
 STATUS_FILE="/data/local/tmp/mali_gms_status.state"
 
-# Cargar funciones comunes si están disponibles
 if [ -f "$SCRIPT_DIR/mali_common.sh" ]; then
     . "$SCRIPT_DIR/mali_common.sh"
 else
     log_info() { echo "[INFO] $1"; }
     log_warn() { echo "[AVISO] $1"; }
     log_error() { echo "[ERROR] $1"; }
+    has_root() { [ "$(id -u 2>/dev/null)" = "0" ]; }
 fi
 
-# Lista de paquetes secundarios de telemetría y diagnósticos 100% seguros de congelar
 JUNK_PACKAGES="
     com.google.android.feedback
     com.google.android.partnersetup
@@ -39,7 +32,6 @@ JUNK_PACKAGES="
     com.google.android.onetimeinitializer
 "
 
-# Componentes internos de analíticas y publicidad pesada dentro de GMS
 GMS_ANALYTICS_COMPONENTS="
     com.google.android.gms/com.google.android.gms.ads.identifier.service.AdIdService
     com.google.android.gms/com.google.android.gms.measurement.AppMeasurementService
@@ -50,140 +42,119 @@ GMS_ANALYTICS_COMPONENTS="
     com.google.android.gms/com.google.android.gms.analytics.AnalyticsReceiver
 "
 
-# ==============================================================================
-# 1. Respaldo de Estado Previo
-# ==============================================================================
-backup_gms_state() {
-    if [ ! -f "$BACKUP_STATE" ]; then
-        log_info "Creando respaldo de servicios y componentes Google..."
-        cat <<EOF > "$BACKUP_STATE"
+enable_gms_shield() {
+    log_info "Activando GMS Shield (Modo $(has_root && echo ROOT || echo ADB_SHELL))..."
+
+    > "$DISABLED_PKGS_FILE"
+    > "$DISABLED_COMPS_FILE"
+    BLOCKED_PKGS=0
+    BLOCKED_COMPS=0
+    APPOPS_OK=0
+
+    # Solo deshabilitar paquetes que actualmente estén habilitados (coincidencia exacta)
+    ENABLED_LIST=$(pm list packages -e 2>/dev/null)
+    for pkg in $JUNK_PACKAGES; do
+        if echo "$ENABLED_LIST" | grep -qx "package:$pkg"; then
+            if pm disable-user --user 0 "$pkg" >/dev/null 2>&1; then
+                echo "$pkg" >> "$DISABLED_PKGS_FILE"
+                BLOCKED_PKGS=$((BLOCKED_PKGS + 1))
+                log_info "Paquete secundario neutralizado: $pkg"
+            fi
+        fi
+    done
+
+    # Deshabilitar componentes internos de GMS requiere generalmente Root
+    if has_root; then
+        for comp in $GMS_ANALYTICS_COMPONENTS; do
+            if pm disable "$comp" >/dev/null 2>&1; then
+                echo "$comp" >> "$DISABLED_COMPS_FILE"
+                BLOCKED_COMPS=$((BLOCKED_COMPS + 1))
+            fi
+        done
+    fi
+
+    if cmd appops set com.google.android.gms RUN_IN_BACKGROUND ignore >/dev/null 2>&1; then
+        APPOPS_OK=1
+    fi
+
+    cat <<EOF > "$BACKUP_STATE"
 TIMESTAMP=$(date +"%Y-%m-%d %H:%M:%S")
-SHIELD_ACTIVE=1
+APPOPS_SET=$APPOPS_OK
 EOF
-        log_info "Respaldo GMS guardado en $BACKUP_STATE"
+
+    cat <<EOF > "$STATUS_FILE"
+STATUS=1
+PRIV_MODE=$(has_root && echo ROOT || echo ADB_SHELL)
+BLOCKED_PKGS=$BLOCKED_PKGS
+BLOCKED_COMPS=$BLOCKED_COMPS
+APPOPS_BG_IGNORED=$APPOPS_OK
+EOF
+
+    if has_root; then
+        echo "SUCCESS: GMS Shield activo ($BLOCKED_PKGS paquetes y $BLOCKED_COMPS componentes bloqueados, AppOps=$APPOPS_OK). Login y Play Games protegidos."
+    else
+        echo "PARTIAL_ADB: GMS Shield ADB activo ($BLOCKED_PKGS paquetes bloqueados, AppOps=$APPOPS_OK). Desactivar componentes internos de GMS requiere Root."
     fi
 }
 
-# ==============================================================================
-# 2. Activación del Escudo Anti-Basura GMS
-# ==============================================================================
-enable_gms_shield() {
-    log_info "Iniciando activación de GMS Shield (Escudo Anti-Basura)..."
-    backup_gms_state
-
-    BLOCKED_COUNT=0
-
-    # Paso A: Desactivar paquetes auxiliares de feedback y telemetría de fabricantes
-    for pkg in $JUNK_PACKAGES; do
-        if pm list packages | grep -q "$pkg"; then
-            pm disable-user --user 0 "$pkg" 2>/dev/null && BLOCKED_COUNT=$((BLOCKED_COUNT + 1))
-            log_info "Paquete secundario neutralizado: $pkg"
-        fi
-    done
-
-    # Paso B: Desactivar componentes internos de medición y rastreo de ads en GMS
-    for comp in $GMS_ANALYTICS_COMPONENTS; do
-        pm disable "$comp" 2>/dev/null && BLOCKED_COUNT=$((BLOCKED_COUNT + 1))
-    done
-    log_info "Componentes de analíticas y Ads de GMS desactivados."
-
-    # Paso C: Restringir sincronizaciones en segundo plano parásitas durante el juego
-    # No afecta inicio de sesión ni Play Games, pero impide que GMS despierte los núcleos
-    cmd appops set com.google.android.gms RUN_IN_BACKGROUND ignore 2>/dev/null
-
-    # Guardar estado activo
-    cat <<EOF > "$STATUS_FILE"
-STATUS=1
-BLOCKED_COUNT=$BLOCKED_COUNT
-RUN_IN_BG=IGNORED
-TIMESTAMP=$(date +"%Y-%m-%d %H:%M:%S")
-EOF
-
-    echo "SUCCESS: GMS Shield activado ($BLOCKED_COUNT servicios basura bloqueados). Login y Play Games protegidos."
-}
-
-# ==============================================================================
-# 3. Desactivación y Restauración Completa
-# ==============================================================================
 disable_gms_shield() {
-    log_info "Desactivando GMS Shield y restaurando todos los servicios Google..."
+    log_info "Desactivando GMS Shield y restaurando servicios..."
 
-    # Paso A: Restaurar paquetes secundarios
-    for pkg in $JUNK_PACKAGES; do
-        if pm list packages -u | grep -q "$pkg"; then
-            pm enable --user 0 "$pkg" 2>/dev/null
-        fi
-    done
+    RESTORED_PKGS=0
+    if [ -f "$DISABLED_PKGS_FILE" ]; then
+        for pkg in $(cat "$DISABLED_PKGS_FILE" 2>/dev/null); do
+            pm enable --user 0 "$pkg" >/dev/null 2>&1 && RESTORED_PKGS=$((RESTORED_PKGS + 1))
+        done
+        rm -f "$DISABLED_PKGS_FILE" 2>/dev/null
+    fi
 
-    # Paso B: Restaurar componentes internos de GMS
-    for comp in $GMS_ANALYTICS_COMPONENTS; do
-        pm enable "$comp" 2>/dev/null
-    done
+    RESTORED_COMPS=0
+    if has_root && [ -f "$DISABLED_COMPS_FILE" ]; then
+        for comp in $(cat "$DISABLED_COMPS_FILE" 2>/dev/null); do
+            pm enable "$comp" >/dev/null 2>&1 && RESTORED_COMPS=$((RESTORED_COMPS + 1))
+        done
+    fi
+    rm -f "$DISABLED_COMPS_FILE" 2>/dev/null
 
-    # Paso C: Restaurar permisos de fondo
-    cmd appops set com.google.android.gms RUN_IN_BACKGROUND allow 2>/dev/null
+    cmd appops set com.google.android.gms RUN_IN_BACKGROUND allow >/dev/null 2>&1
 
-    rm -f "$STATUS_FILE" 2>/dev/null
-    echo "SUCCESS: GMS Shield desactivado. Todos los servicios de Google Play restaurados al 100%."
+    rm -f "$BACKUP_STATE" "$STATUS_FILE" 2>/dev/null
+    echo "SUCCESS: GMS Shield desactivado ($RESTORED_PKGS paquetes y $RESTORED_COMPS componentes restaurados)."
 }
 
-# ==============================================================================
-# 4. Auditoría y Estado en Tiempo Real
-# ==============================================================================
 audit_gms() {
     echo "====================================================="
     echo "  AUDITORÍA DE SERVICIOS GOOGLE PLAY (GMS SHIELD)    "
     echo "====================================================="
-    
-    STATUS="Inactivo (Servicios Google completos)"
-    if [ -f "$STATUS_FILE" ]; then
-        STATUS="Activo (Escudo Anti-Basura Operativo)"
-    fi
-    echo "• Estado del Escudo: $STATUS"
-    echo "-----------------------------------------------------"
-    echo "• Paquetes Secundarios Monitoreados:"
+    echo "• Modo de Privilegios: $(has_root && echo ROOT || echo ADB_SHELL)"
+    DISABLED_LIST=$(pm list packages -d 2>/dev/null)
     for pkg in $JUNK_PACKAGES; do
-        STATE=$(pm list packages -d | grep "$pkg")
-        if [ -n "$STATE" ]; then
-            echo "  - $pkg: [BLOQUEADO / AHORRANDO CPU]"
+        if echo "$DISABLED_LIST" | grep -qx "package:$pkg"; then
+            echo "  - $pkg: [BLOQUEADO ✓]"
+        elif pm path "$pkg" >/dev/null 2>&1; then
+            echo "  - $pkg: [ACTIVO]"
         else
-            echo "  - $pkg: [ACTIVO / CONSUMIENDO]"
+            echo "  - $pkg: [NO INSTALADO EN ROM]"
         fi
     done
-    echo "-----------------------------------------------------"
-    echo "• Funciones Esenciales de Juego:"
-    echo "  - Google Account Login: 100% OPERATIVO ✓"
-    echo "  - Google Play Games: 100% OPERATIVO ✓"
-    echo "  - Google Play Billing (Compras): 100% OPERATIVO ✓"
+    echo "• Google Account Login / Play Games / Billing: INTACTOS ✓"
     echo "====================================================="
 }
 
 get_status() {
     STATUS="0"
-    if [ -f "$STATUS_FILE" ]; then
-        STATUS="1"
-    fi
+    [ -f "$STATUS_FILE" ] && STATUS="1"
     echo "GMS_SHIELD_STATUS=$STATUS"
+    echo "PRIV_MODE=$(has_root && echo ROOT || echo ADB_SHELL)"
     echo "LOGIN_PROTECTED=YES"
     echo "SECURITY_RULE=CERO_PERSIST_SYS"
 }
 
 ACTION="${1:-status}"
 case "$ACTION" in
-    enable|1|on|shield)
-        enable_gms_shield
-        ;;
-    disable|0|off|restore)
-        disable_gms_shield
-        ;;
-    audit|check|info)
-        audit_gms
-        ;;
-    status)
-        get_status
-        ;;
-    *)
-        echo "Uso: $0 {enable|disable|audit|status}"
-        exit 1
-        ;;
+    enable|1|on|shield) enable_gms_shield ;;
+    disable|0|off|restore) disable_gms_shield ;;
+    audit|check|info) audit_gms ;;
+    status) get_status ;;
+    *) echo "Uso: $0 {enable|disable|audit|status}"; exit 1 ;;
 esac

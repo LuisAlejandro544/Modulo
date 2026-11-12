@@ -110,7 +110,7 @@ export const DeployScreen: React.FC = () => {
           <div>ax_mali_core_optimizer_v1.4.0.zip</div>
           <div className="text-slate-400 pl-4">├── <span className="text-cyan-400 font-bold">module.prop</span> <span className="text-slate-600">// Línea 1 id= limpia (v1.4.0, axeronPlugin=30000)</span></div>
           <div className="text-slate-400 pl-4">├── <span className="text-cyan-400 font-bold">customize.sh</span> <span className="text-slate-600">// Instalador y permisos 0755</span></div>
-          <div className="text-slate-400 pl-4">├── <span className="text-cyan-400 font-bold">service.sh</span> <span className="text-slate-600">// Auto-arranque de Ultra FPS por defecto</span></div>
+          <div className="text-slate-400 pl-4">├── <span className="text-cyan-400 font-bold">service.sh</span> <span className="text-slate-600">// Auto-arranque Ultra FPS + RAM VM seguro</span></div>
           <div className="text-slate-400 pl-4">├── <span className="text-cyan-400 font-bold">uninstall.sh</span> <span className="text-slate-600">// Reversión completa de ajustes</span></div>
           <div className="text-slate-400 pl-4">├── META-INF/com/google/android/</div>
           <div className="text-slate-400 pl-8">├── <span className="text-emerald-400 font-bold">update-binary</span> <span className="text-slate-600">// Puente universal KernelSU / Magisk / APatch</span></div>
@@ -119,7 +119,7 @@ export const DeployScreen: React.FC = () => {
           <div className="text-slate-400 pl-8">├── <span className="text-emerald-400 font-bold">fps_boost.sh</span> <span className="text-slate-600">// Latch Unsignaled, SCHED_FIFO 99 RenderThread, HWUI & RAM</span></div>
           <div className="text-slate-400 pl-8">├── <span className="text-amber-400 font-bold">io_aot_tweak.sh</span> <span className="text-slate-600">// Pre-Compilación AOT speed mode, Readahead 1024KB & iostats=0</span></div>
           <div className="text-slate-400 pl-8">├── <span className="text-rose-400 font-bold">thermal_tweak.sh</span> <span className="text-slate-600">// Bypass Joyose/GOS & MediaTek GED Margin Tuning</span></div>
-          <div className="text-slate-400 pl-8">├── <span className="text-emerald-400 font-bold">touch_boost.sh</span> <span className="text-slate-600">// Touch Slop 1px & Zero Backpressure</span></div>
+          <div className="text-slate-400 pl-8">├── <span className="text-emerald-400 font-bold">touch_boost.sh</span> <span className="text-slate-600">// pointer_speed +7, Glove sysfs & Zero Backpressure</span></div>
           <div className="text-slate-400 pl-8">├── <span className="text-cyan-300">ram_tweak.sh</span> <span className="text-slate-600">// Swappiness 50, Zero Stuttering</span></div>
           <div className="text-slate-400 pl-8">├── <span className="text-cyan-300">governor_tweak.sh</span> <span className="text-slate-600">// Piso de frecuencia GPU (Floor Freq)</span></div>
           <div className="text-slate-400 pl-8">├── <span className="text-cyan-300">angle_tweak.sh</span> <span className="text-slate-600">// ANGLE OpenGL sobre Vulkan</span></div>

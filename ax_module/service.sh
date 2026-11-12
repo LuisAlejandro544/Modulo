@@ -1,39 +1,35 @@
 #!/system/bin/sh
 # ==============================================================================
 # Script: service.sh
-# Propósito: Servicio en segundo plano iniciado por AX Manager, KernelSU, APatch o Magisk.
+# Propósito: Servicio de arranque iniciado por AX Manager, KernelSU, APatch o Magisk.
 # ==============================================================================
-# EXPLICACIÓN DE LÓGICA Y CÓDIGO:
-# - Se invoca automáticamente en modo BusyBox standalone tras el arranque.
-# - Espera a que el sistema complete el boot (boot_completed = 1).
-# - Por requerimiento de diseño: activa automáticamente el Ultra FPS Engine por defecto
-#   (Latch Unsignaled, Core Affinity, Disable HWUI DrawBlur y optimización de RAM).
-# - CERO propiedades no volátiles (No modifica propiedades persistentes en disco).
+# EXPLICACIÓN DE LÓGICA:
+# - Espera a que Android complete el arranque (sys.boot_completed = 1).
+# - Aplica únicamente optimizaciones seguras para arranque (no congela apps
+#   de usuario en el boot para no romper notificaciones ni alarmas).
+# - El congelador SIGSTOP y los perfiles de juego se activan desde el WebUI.
 # ==============================================================================
 
 MODDIR="$(dirname "$0")"
 
-# Esperar a que el sistema concluya el arranque
 while [ "$(getprop sys.boot_completed)" != "1" ]; do
     sleep 2
 done
 
-# Cargar biblioteca compartida
 if [ -f "$MODDIR/scripts/mali_common.sh" ]; then
     . "$MODDIR/scripts/mali_common.sh"
-    log_info "Servicio de AX Mali Core Engine iniciado correctamente."
-    log_info "Servidor AXERON: ${AXERON:-no-detectado}, Versión: ${AXERONVER:-indefinida}"
+    log_info "Servicio de AX Mali Core Engine v1.4.0 iniciado (Modo $(get_priv_mode))."
 fi
 
 if [ -f "$MODDIR/scripts/fps_boost.sh" ]; then
-    sh "$MODDIR/scripts/fps_boost.sh" enable auto
-    log_info "Ultra FPS Engine activado automáticamente en el arranque."
+    sh "$MODDIR/scripts/fps_boost.sh" enable auto >/dev/null 2>&1
+    log_info "Ajustes base de Ultra FPS Engine aplicados tras el arranque."
 fi
 
-# Activar optimización Anti-Stutter RAM & ZRAM por defecto
+# Solo ajusta parámetros VM (/proc/sys/vm/*) si hay Root; NO congela apps al arranque
 if [ -f "$MODDIR/scripts/ram_tweak.sh" ]; then
-    sh "$MODDIR/scripts/ram_tweak.sh" enable 50
-    log_info "Módulo Anti-Stutter RAM & ZRAM activado automáticamente."
+    sh "$MODDIR/scripts/ram_tweak.sh" vm 50 >/dev/null 2>&1
+    log_info "Parámetros VM Anti-Stutter aplicados en arranque (sin congelar apps)."
 fi
 
-log_info "Servicio de AX Mali Engine en ejecución y listo para peticiones WebUI."
+log_info "Servicio de AX Mali Engine listo para peticiones WebUI."

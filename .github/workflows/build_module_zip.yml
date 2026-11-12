@@ -14,7 +14,7 @@ on:
       version_tag:
         description: 'Versión o etiqueta para el archivo ZIP generado'
         required: false
-        default: 'v1.3.0'
+        default: 'v1.4.0'
 
 jobs:
   package-module:
@@ -54,7 +54,7 @@ jobs:
           mkdir -p dist
           # La compresión se realiza desde la raíz de ax_module para que module.prop y customize.sh queden en el root del ZIP
           cd ax_module
-          zip -r ../dist/ax_mali_core_optimizer_${{ github.event.inputs.version_tag || 'v1.3.0' }}.zip ./*
+          zip -r ../dist/ax_mali_core_optimizer_${{ github.event.inputs.version_tag || 'v1.4.0' }}.zip ./*
           cd ..
           echo "ZIP generado con éxito en dist/"
           ls -lh dist/
@@ -62,6 +62,6 @@ jobs:
       - name: Subir artefacto ZIP descargable
         uses: actions/upload-artifact@v4
         with:
-          name: ax_mali_core_optimizer_${{ github.event.inputs.version_tag || 'v1.3.0' }}
+          name: ax_mali_core_optimizer_${{ github.event.inputs.version_tag || 'v1.4.0' }}
           path: dist/*.zip
           retention-days: 30

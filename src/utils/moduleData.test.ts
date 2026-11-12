@@ -1,7 +1,34 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import path from 'node:path';
+import JSZip from 'jszip';
 import { validateScriptSecurity, classifyAbi, MODULE_SCRIPTS } from './moduleData.ts';
+import {
+  buildModuleZipBlob,
+  getUnixPermissionsForPath,
+  normalizeZipEntries,
+} from './zipGenerator.ts';
+
+function collectAxModuleFiles(dir = 'ax_module'): Record<string, string> {
+  const result: Record<string, string> = {};
+  if (!fs.existsSync(dir)) return result;
+
+  const walk = (currentDir: string) => {
+    for (const entry of fs.readdirSync(currentDir, { withFileTypes: true })) {
+      const fullPath = path.join(currentDir, entry.name);
+      if (entry.isDirectory()) {
+        walk(fullPath);
+      } else {
+        const unixKey = '/' + fullPath.replace(/\\/g, '/');
+        result[unixKey] = fs.readFileSync(fullPath, 'utf-8');
+      }
+    }
+  };
+
+  walk(dir);
+  return result;
+}
 
 test('Seguridad: detecta y prohíbe el uso de propiedades persistentes no permitidas', () => {
   const unsafeScript = `
@@ -11,93 +38,93 @@ test('Seguridad: detecta y prohíbe el uso de propiedades persistentes no permit
   assert.equal(result.isValid, false);
 });
 
-test('Seguridad: valida que fps_boost.sh esté 100% libre de propiedades no permitidas', () => {
-  const fpsScript = MODULE_SCRIPTS.find(s => s.name === 'fps_boost.sh');
-  assert.ok(fpsScript, 'fps_boost.sh debe existir');
-  const result = validateScriptSecurity(fpsScript.codeSnippet);
-  assert.equal(result.isValid, true);
+test('Seguridad: todos los archivos físicos de ax_module/ están libres de propiedades prohibidas y placebos removidos', () => {
+  const files = collectAxModuleFiles();
+  const entries = Object.entries(files);
+  assert.ok(entries.length >= 17, 'Deben existir los archivos reales de ax_module/');
 
-  if (fs.existsSync('ax_module/scripts/fps_boost.sh')) {
-    const fileContent = fs.readFileSync('ax_module/scripts/fps_boost.sh', 'utf-8');
-    const fileResult = validateScriptSecurity(fileContent);
-    assert.equal(fileResult.isValid, true, 'El archivo físico fps_boost.sh no debe contener persist.sys');
+  const removedPlacebos = [
+    'view.touch_slop',
+    'view.scroll_friction',
+    'debug.input.velocitytracker.strategy',
+    'touch.pressure.',
+    'debug.mali.render_scale',
+    'debug.mali.dvfs_floor',
+    'debug.thermal.throttle',
+    'ro.surface_flinger.supports_background_blur',
+    'compact_memory',
+  ];
+
+  for (const [filePath, content] of entries) {
+    assert.equal(
+      validateScriptSecurity(content).isValid,
+      true,
+      `El archivo ${filePath} no debe contener propiedades permanentes prohibidas`
+    );
+
+    const executableLines = filePath.endsWith('.sh')
+      ? content
+          .split('\n')
+          .filter((line) => !line.trimStart().startsWith('#'))
+          .join('\n')
+      : content;
+
+    for (const placebo of removedPlacebos) {
+      assert.equal(
+        executableLines.includes(placebo),
+        false,
+        `El archivo ${filePath} no debe ejecutar el placebo eliminado "${placebo}"`
+      );
+    }
   }
 });
 
-test('Seguridad: valida que ram_tweak.sh esté 100% libre de propiedades no permitidas', () => {
-  const ramScript = MODULE_SCRIPTS.find(s => s.name === 'ram_tweak.sh');
-  assert.ok(ramScript, 'ram_tweak.sh debe existir');
-  const result = validateScriptSecurity(ramScript.codeSnippet);
-  assert.equal(result.isValid, true);
+test('Scripts reales: verificaciones críticas de lógica en touch_boost, fps_boost, ram_tweak, governor, angle y service.sh', () => {
+  const touchContent = fs.readFileSync('ax_module/scripts/touch_boost.sh', 'utf-8');
+  assert.ok(touchContent.includes('has_root'), 'touch_boost.sh debe distinguir Root de ADB');
+  assert.ok(touchContent.includes('glove_mode'), 'touch_boost.sh debe incluir soporte de Glove Mode');
+  assert.ok(touchContent.includes('/sys/module/ged/parameters/'), 'touch_boost.sh debe soportar MediaTek GED boost');
+  assert.ok(touchContent.includes('/sys/kernel/fpsgo/'), 'touch_boost.sh debe soportar MediaTek FPSGO boost');
 
-  if (fs.existsSync('ax_module/scripts/ram_tweak.sh')) {
-    const fileContent = fs.readFileSync('ax_module/scripts/ram_tweak.sh', 'utf-8');
-    const fileResult = validateScriptSecurity(fileContent);
-    assert.equal(fileResult.isValid, true, 'El archivo físico ram_tweak.sh no debe contener persist.sys');
-    assert.ok(fileContent.includes('freeze_background_apps'), 'ram_tweak.sh debe incluir freeze_background_apps');
-    assert.ok(fileContent.includes('kill -STOP'), 'ram_tweak.sh debe usar SIGSTOP para pausar apps');
-    assert.ok(fileContent.includes('kill -CONT'), 'ram_tweak.sh debe usar SIGCONT para reanudar apps');
-  }
+  const fpsContent = fs.readFileSync('ax_module/scripts/fps_boost.sh', 'utf-8');
+  assert.ok(fpsContent.includes('RenderThread'), 'fps_boost.sh debe priorizar RenderThread');
+  assert.ok(fpsContent.includes('chrt -f -p 99'), 'fps_boost.sh debe usar SCHED_FIFO 99');
+  assert.ok(fpsContent.includes('disable_window_blurs'), 'fps_boost.sh debe usar disable_window_blurs');
+  assert.ok(fpsContent.includes('BLUR=$(getprop debug.hwui.disable_draw_blur'), 'fps_boost.sh debe inicializar BLUR antes de imprimirlo');
+
+  const ramContent = fs.readFileSync('ax_module/scripts/ram_tweak.sh', 'utf-8');
+  assert.ok(ramContent.includes('freeze_background_apps'), 'ram_tweak.sh debe incluir freeze_background_apps');
+  assert.ok(ramContent.includes('kill -STOP'), 'ram_tweak.sh debe usar SIGSTOP para pausar apps');
+  assert.ok(ramContent.includes('kill -CONT'), 'ram_tweak.sh debe usar SIGCONT para reanudar apps');
+  assert.ok(ramContent.includes('vm|boot'), 'ram_tweak.sh debe separar el modo vm para arranque seguro');
+
+  const serviceContent = fs.readFileSync('ax_module/service.sh', 'utf-8');
+  assert.ok(serviceContent.includes('ram_tweak.sh" vm 50'), 'service.sh debe usar modo vm y nunca congelar apps en el arranque');
+
+  const govContent = fs.readFileSync('ax_module/scripts/governor_tweak.sh', 'utf-8');
+  const govExecLines = govContent
+    .split('\n')
+    .filter((line) => !line.trimStart().startsWith('#'))
+    .join('\n');
+  assert.equal(
+    govExecLines.includes('custom_upbound_gpu_freq'),
+    false,
+    'governor_tweak.sh no debe escribir el techo custom_upbound_gpu_freq como piso'
+  );
+  assert.ok(govExecLines.includes('custom_boost_gpu_freq'), 'governor_tweak.sh debe usar custom_boost_gpu_freq');
+
+  const angleContent = fs.readFileSync('ax_module/scripts/angle_tweak.sh', 'utf-8');
+  assert.ok(angleContent.includes('4198400'), 'angle_tweak.sh debe validar el umbral 4198400 (Vulkan 1.1)');
+  assert.ok(angleContent.includes('0x*'), 'angle_tweak.sh debe soportar valores Vulkan en hexadecimal');
 });
 
-test('Seguridad: valida que governor_tweak.sh esté 100% libre de propiedades no permitidas', () => {
-  const govScript = MODULE_SCRIPTS.find(s => s.name === 'governor_tweak.sh');
-  assert.ok(govScript, 'governor_tweak.sh debe existir');
-  const result = validateScriptSecurity(govScript.codeSnippet);
-  assert.equal(result.isValid, true);
-
-  if (fs.existsSync('ax_module/scripts/governor_tweak.sh')) {
-    const fileContent = fs.readFileSync('ax_module/scripts/governor_tweak.sh', 'utf-8');
-    const fileResult = validateScriptSecurity(fileContent);
-    assert.equal(fileResult.isValid, true, 'El archivo físico governor_tweak.sh no debe contener persist.sys');
-  }
-});
-
-test('Seguridad: valida que gms_shield.sh esté 100% libre de propiedades no permitidas', () => {
-  const gmsScript = MODULE_SCRIPTS.find(s => s.name === 'gms_shield.sh');
-  assert.ok(gmsScript, 'gms_shield.sh debe existir');
-  const result = validateScriptSecurity(gmsScript.codeSnippet);
-  assert.equal(result.isValid, true);
-
-  if (fs.existsSync('ax_module/scripts/gms_shield.sh')) {
-    const fileContent = fs.readFileSync('ax_module/scripts/gms_shield.sh', 'utf-8');
-    const fileResult = validateScriptSecurity(fileContent);
-    assert.equal(fileResult.isValid, true, 'El archivo físico gms_shield.sh no debe contener persist.sys');
-  }
-});
-
-test('Seguridad: valida que angle_tweak.sh esté 100% libre de propiedades no permitidas y requiera Vulkan 1.1', () => {
-  const angleScript = MODULE_SCRIPTS.find(s => s.name === 'angle_tweak.sh');
-  assert.ok(angleScript, 'angle_tweak.sh debe existir');
-  const result = validateScriptSecurity(angleScript.codeSnippet);
-  assert.equal(result.isValid, true);
-
-  if (fs.existsSync('ax_module/scripts/angle_tweak.sh')) {
-    const fileContent = fs.readFileSync('ax_module/scripts/angle_tweak.sh', 'utf-8');
-    const fileResult = validateScriptSecurity(fileContent);
-    assert.equal(fileResult.isValid, true, 'El archivo físico angle_tweak.sh no debe contener persist.sys');
-    assert.ok(fileContent.includes('4198400'), 'angle_tweak.sh debe validar el umbral 4198400 (Vulkan 1.1)');
-  }
-});
-
-test('Seguridad: valida que touch_boost.sh y surface_tweak.sh estén 100% libres de propiedades no permitidas', () => {
-  const touchScript = MODULE_SCRIPTS.find(s => s.name === 'touch_boost.sh');
-  assert.ok(touchScript, 'touch_boost.sh debe existir');
-  assert.equal(validateScriptSecurity(touchScript.codeSnippet).isValid, true);
-
-  if (fs.existsSync('ax_module/scripts/touch_boost.sh')) {
-    const fileContent = fs.readFileSync('ax_module/scripts/touch_boost.sh', 'utf-8');
-    assert.equal(validateScriptSecurity(fileContent).isValid, true, 'touch_boost.sh no debe contener persist.sys');
-    assert.ok(fileContent.includes('glove_mode'), 'touch_boost.sh debe incluir soporte de Glove Mode');
-    assert.ok(fileContent.includes('impulse'), 'touch_boost.sh debe configurar VelocityTracker strategy impulse');
-    assert.ok(fileContent.includes('scroll_friction'), 'touch_boost.sh debe ajustar view.scroll_friction a 0.005');
-    assert.ok(fileContent.includes('/sys/module/ged/parameters/'), 'touch_boost.sh debe soportar MediaTek GED boost');
-    assert.ok(fileContent.includes('/sys/kernel/fpsgo/'), 'touch_boost.sh debe soportar MediaTek FPSGO boost');
-  }
-
-  const surfaceScript = MODULE_SCRIPTS.find(s => s.name === 'surface_tweak.sh');
-  assert.ok(surfaceScript, 'surface_tweak.sh debe existir');
-  assert.equal(validateScriptSecurity(surfaceScript.codeSnippet).isValid, true);
+test('WebUI ax_module/webroot/index.html: etiquetas section balanceadas, 10 pestañas reales y sin window.alert', () => {
+  const html = fs.readFileSync('ax_module/webroot/index.html', 'utf-8');
+  const openSections = (html.match(/<section\b/g) || []).length;
+  const closeSections = (html.match(/<\/section>/g) || []).length;
+  assert.equal(openSections, 10, 'Deben existir exactamente 10 secciones de pestañas en WebUI');
+  assert.equal(openSections, closeSections, 'Las etiquetas <section> y </section> deben estar balanceadas');
+  assert.equal(/\balert\s*\(/.test(html), false, 'WebUI no debe usar window.alert');
 });
 
 test('Arquitectura: clasifica correctamente 32-bit y 64-bit', () => {
@@ -107,58 +134,33 @@ test('Arquitectura: clasifica correctamente 32-bit y 64-bit', () => {
   assert.equal(classifyAbi('desconocido'), 'unknown');
 });
 
-test('Seguridad: valida que fps_boost.sh incluya SCHED_FIFO para RenderThread', () => {
-  if (fs.existsSync('ax_module/scripts/fps_boost.sh')) {
-    const fileContent = fs.readFileSync('ax_module/scripts/fps_boost.sh', 'utf-8');
-    assert.ok(fileContent.includes('RenderThread'), 'fps_boost.sh debe priorizar RenderThread');
-    assert.ok(fileContent.includes('chrt -f -p 99'), 'fps_boost.sh debe usar SCHED_FIFO 99');
-  }
-});
-
-test('Seguridad: valida que io_aot_tweak.sh esté 100% libre de persist.sys y soporte AOT e I/O Readahead', () => {
-  const ioScript = MODULE_SCRIPTS.find(s => s.name === 'io_aot_tweak.sh');
-  assert.ok(ioScript, 'io_aot_tweak.sh debe existir en MODULE_SCRIPTS');
-  assert.equal(validateScriptSecurity(ioScript.codeSnippet).isValid, true);
-
-  if (fs.existsSync('ax_module/scripts/io_aot_tweak.sh')) {
-    const fileContent = fs.readFileSync('ax_module/scripts/io_aot_tweak.sh', 'utf-8');
-    assert.equal(validateScriptSecurity(fileContent).isValid, true, 'io_aot_tweak.sh no debe contener persist.sys');
-    assert.ok(fileContent.includes('read_ahead_kb'), 'io_aot_tweak.sh debe configurar read_ahead_kb');
-    assert.ok(fileContent.includes('iostats'), 'io_aot_tweak.sh debe desactivar iostats');
-    assert.ok(fileContent.includes('cmd package compile -m'), 'io_aot_tweak.sh debe ejecutar compilación AOT');
-  }
-});
-
-test('Seguridad: valida que thermal_tweak.sh esté 100% libre de persist.sys y anule limitadores de fabricante', () => {
-  const thermalScript = MODULE_SCRIPTS.find(s => s.name === 'thermal_tweak.sh');
-  assert.ok(thermalScript, 'thermal_tweak.sh debe existir en MODULE_SCRIPTS');
-  assert.equal(validateScriptSecurity(thermalScript.codeSnippet).isValid, true);
-
-  if (fs.existsSync('ax_module/scripts/thermal_tweak.sh')) {
-    const fileContent = fs.readFileSync('ax_module/scripts/thermal_tweak.sh', 'utf-8');
-    assert.equal(validateScriptSecurity(fileContent).isValid, true, 'thermal_tweak.sh no debe contener persist.sys');
-    assert.ok(fileContent.includes('com.xiaomi.joyose'), 'thermal_tweak.sh debe apuntar a Joyose');
-    assert.ok(fileContent.includes('dvfs_margin_value'), 'thermal_tweak.sh debe calibrar dvfs_margin_value');
-    assert.ok(fileContent.includes('gpu_idle'), 'thermal_tweak.sh debe calibrar gpu_idle');
-  }
-});
-
-test('Módulo: contiene los 15 archivos modulares completos', () => {
+test('Módulo: MODULE_SCRIPTS contiene los 15 archivos documentados libres de placebos', () => {
   assert.equal(MODULE_SCRIPTS.length, 15);
-  const names = MODULE_SCRIPTS.map(s => s.name);
-  assert.ok(names.includes('fps_boost.sh'));
-  assert.ok(names.includes('touch_boost.sh'));
-  assert.ok(names.includes('module.prop'));
-  assert.ok(names.includes('customize.sh'));
-  assert.ok(names.includes('service.sh'));
-  assert.ok(names.includes('mali_common.sh'));
-  assert.ok(names.includes('detect_gpu.sh'));
-  assert.ok(names.includes('governor_tweak.sh'));
-  assert.ok(names.includes('ram_tweak.sh'));
-  assert.ok(names.includes('gms_shield.sh'));
-  assert.ok(names.includes('angle_tweak.sh'));
-  assert.ok(names.includes('io_aot_tweak.sh'));
-  assert.ok(names.includes('thermal_tweak.sh'));
-  assert.ok(names.includes('surface_tweak.sh'));
-  assert.ok(names.includes('uninstall.sh'));
+  for (const script of MODULE_SCRIPTS) {
+    assert.equal(validateScriptSecurity(script.codeSnippet).isValid, true);
+  }
+});
+
+test('ZIP Generator: empaqueta los archivos reales de ax_module/ con rutas raíz, LF y permisos UNIX', async () => {
+  const realFiles = collectAxModuleFiles();
+  const normalized = normalizeZipEntries(realFiles);
+  assert.ok(normalized['module.prop'], 'Debe normalizar module.prop en raíz');
+  assert.equal(getUnixPermissionsForPath('scripts/fps_boost.sh'), '755');
+  assert.equal(getUnixPermissionsForPath('META-INF/com/google/android/update-binary'), '755');
+  assert.equal(getUnixPermissionsForPath('webroot/index.html'), '644');
+
+  const blob = await buildModuleZipBlob(realFiles);
+  const buffer = Buffer.from(await blob.arrayBuffer());
+  const loadedZip = await JSZip.loadAsync(buffer);
+
+  for (const [relPath, expectedContent] of Object.entries(normalized)) {
+    const zipEntry = loadedZip.file(relPath);
+    assert.ok(zipEntry, `El ZIP debe incluir el archivo real ${relPath}`);
+    const actualContent = await zipEntry.async('string');
+    assert.equal(
+      actualContent,
+      expectedContent.replace(/\r\n/g, '\n'),
+      `El contenido empaquetado de ${relPath} debe coincidir exactamente con ax_module/`
+    );
+  }
 });

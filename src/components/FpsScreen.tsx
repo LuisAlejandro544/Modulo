@@ -59,7 +59,7 @@ export const FpsScreen: React.FC = () => {
             <p className="text-sm text-slate-300 leading-relaxed">
               Sistema de optimización profunda para procesadores gráficos Mali. Ataca los 4 cuellos de botella
               críticos que provocan caídas bruscas de frames en shooters y juegos competitivos: sincronización rígida de V-Sync,
-              asignación de hilos a núcleos lentos, sobrecarga de Gaussian Blur en capas personalizadas y micro-tirones por compactación de RAM.
+              asignación de hilos a núcleos lentos, sobrecarga de Gaussian Blur en capas personalizadas y micro-tirones por saturación de caché en RAM.
             </p>
           </div>
 
@@ -279,7 +279,7 @@ export const FpsScreen: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="font-bold text-sm text-white">5. Limpiador RAM & Zero LMKD</h3>
-                  <span className="text-[11px] text-amber-400 font-mono">drop_caches & compact_memory 0</span>
+                  <span className="text-[11px] text-amber-400 font-mono">sync & drop_caches 3 (Root)</span>
                 </div>
               </div>
               <button

@@ -354,6 +354,34 @@
       color: var(--text-muted);
       line-height: 1.35;
     }
+    .pcard {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 10px 12px;
+      margin-bottom: 8px;
+      font-size: 12px;
+      color: var(--text-main);
+    }
+    .toast-bar {
+      position: fixed;
+      left: 14px;
+      right: 14px;
+      bottom: 14px;
+      z-index: 99;
+      background: #0f172a;
+      border: 1px solid var(--primary);
+      color: var(--text-main);
+      padding: 10px 14px;
+      border-radius: var(--radius-md);
+      font-size: 12px;
+      font-weight: 600;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+      display: none;
+    }
+    .toast-bar.show { display: block; animation: fadeIn 0.2s ease-out; }
+    .toast-bar.warn { border-color: var(--amber); color: #fde68a; }
+    .toast-bar.ok { border-color: var(--emerald); color: #a7f3d0; }
   </style>
 </head>
 <body>
@@ -362,9 +390,9 @@
   <header class="app-bar">
     <div class="app-title">
       <span>AX Mali Core</span>
-      <span class="app-chip">v1.3</span>
+      <span class="app-chip">v1.4</span>
     </div>
-    <span id="globalArchBadge" style="font-size: 11px; color: #34d399; font-weight: 700;">Ultra FPS ✓</span>
+    <span id="globalArchBadge" style="font-size: 11px; color: #38bdf8; font-weight: 700;">Verificando...</span>
   </header>
 
   <!-- Navegación Modular por Apartados -->
@@ -496,7 +524,7 @@
             <span class="pillar-tag">Zero Memory Freezes</span>
           </div>
           <p class="pillar-desc">
-            Purga dirty pagecache y suprime la compactación agresiva de ZRAM que causa el típico congelamiento de pantalla de 200ms en pleno tiroteo.
+            Sincroniza y libera dirty pagecache (drop_caches=3) antes de iniciar la partida para recuperar memoria disponible sin cerrar juegos activos.
           </p>
         </div>
 
@@ -689,13 +717,13 @@
           <span id="touchPill" style="font-size: 11px; font-weight: 700; color: #94a3b8;">Inactivo</span>
         </div>
         <p class="card-desc">
-          Convierte la respuesta táctil en la de un gama alta: activa Glove Mode / alta ganancia en el panel, rastreador VelocityTracker Impulse sin inercia, disuelve la fricción a 0.005 y acelera CPU/DRAM en MediaTek al toque (GED & FPSGO).
+          Optimiza la latencia táctil real: reduce tap_duration_enabled y long_press_timeout vía Settings (ADB/Root), ajusta pointer_speed a +7 y en modo Root activa Glove Mode sysfs, Zero Backpressure y boost MediaTek GED/FPSGO.
         </p>
 
         <div class="setting-item">
           <div>
             <div class="setting-name">Ultra Sensibilidad & Alzar Mira</div>
-            <div class="setting-sub">Glove Mode • Impulse • Fricción 0.005 • MTK Boost</div>
+            <div class="setting-sub">Pointer +7 • Tap 0ms • Glove Sysfs • MTK Boost</div>
           </div>
           <label class="toggle">
             <input type="checkbox" id="touchToggle" onchange="toggleTouch(this.checked)">
@@ -705,16 +733,16 @@
 
         <div class="metric-grid">
           <div class="metric-box">
-            <div class="metric-k">Touch Slop</div>
-            <div class="metric-v" id="txtSlop">Estándar (8-16px)</div>
+            <div class="metric-k">Tap Duration</div>
+            <div class="metric-v" id="txtSlop">Estándar</div>
           </div>
           <div class="metric-box">
-            <div class="metric-k">Fricción Scroll</div>
-            <div class="metric-v" id="txtFriction">0.015 (Estándar)</div>
+            <div class="metric-k">Velocidad Puntero</div>
+            <div class="metric-v" id="txtFriction">Estándar</div>
           </div>
           <div class="metric-box">
-            <div class="metric-k">Rastreador</div>
-            <div class="metric-v" id="txtTracker">LSQ2 (Con inercia)</div>
+            <div class="metric-k">Multi-Press Timeout</div>
+            <div class="metric-v" id="txtTracker">Estándar</div>
           </div>
           <div class="metric-box">
             <div class="metric-k">MediaTek Boost</div>
@@ -918,6 +946,8 @@
         <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); margin: 12px 0 6px;">REGISTRO DE COMANDOS</div>
         <div class="console-card" id="logOut">Listo para ejecutar instrucciones en AX Manager...</div>
       </div>
+    </section>
+
     <!-- =================================================================== -->
     <!-- APARTADO 8: CARGA INSTANTÁNEA E I/O FLASH (AOT SPEED & READAHEAD)    -->
     <!-- =================================================================== -->
@@ -1046,8 +1076,20 @@
 
   </main>
 
+  <div id="toastBar" class="toast-bar" role="status" aria-live="polite"></div>
+
   <script>
     let selectedScaleFactor = "0.5";
+    let toastTimer = null;
+
+    function showToast(msg, level = 'ok') {
+      const el = document.getElementById('toastBar');
+      if (!el) return;
+      el.textContent = msg;
+      el.className = 'toast-bar show ' + level;
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => { el.className = 'toast-bar'; }, 4200);
+    }
 
     function switchTab(tabName) {
       document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
@@ -1056,7 +1098,10 @@
       const targetPane = document.getElementById('tab-' + tabName);
       if (targetPane) targetPane.classList.add('active');
 
-      const activeBtn = Array.from(document.querySelectorAll('.tab-btn')).find(b => b.getAttribute('onclick').includes(tabName));
+      const activeBtn = Array.from(document.querySelectorAll('.tab-btn')).find(b => {
+        const attr = b.getAttribute('onclick') || '';
+        return attr.includes("'" + tabName + "'");
+      });
       if (activeBtn) activeBtn.classList.add('active');
     }
 
@@ -1069,14 +1114,14 @@
 
     function setTargetPkg(pkg, chipElement) {
       document.getElementById('targetPkgInput').value = pkg;
-      document.querySelectorAll('.game-chip').forEach(c => c.classList.remove('active'));
+      document.querySelectorAll('#tab-potato .game-chip').forEach(c => c.classList.remove('active'));
       if (chipElement) chipElement.classList.add('active');
     }
 
     function onSelectAppFromDropdown(pkg) {
       if (pkg) {
         document.getElementById('targetPkgInput').value = pkg;
-        document.querySelectorAll('.game-chip').forEach(c => c.classList.remove('active'));
+        document.querySelectorAll('#tab-potato .game-chip').forEach(c => c.classList.remove('active'));
       }
     }
 
@@ -1115,7 +1160,6 @@
       return null;
     }
 
-    // Control de Ultra FPS Engine
     async function toggleFpsEngine(enable) {
       const pill = document.getElementById('fpsStatusPill');
       const txtVsync = document.getElementById('txtFpsVsync');
@@ -1123,8 +1167,8 @@
       const txtBlur = document.getElementById('txtFpsBlur');
       const txtRam = document.getElementById('txtFpsRam');
       const targetPkg = document.getElementById('targetPkgInput') ? document.getElementById('targetPkgInput').value.trim() : 'auto';
-
       const action = enable ? "enable" : "disable";
+
       const cmd = `
         for S in \
           "$AXERONDIR/plugins/ax_mali_core_optimizer/scripts/fps_boost.sh" \
@@ -1132,43 +1176,33 @@
           "./scripts/fps_boost.sh"; do
           if [ -f "$S" ]; then sh "$S" ${action} "${targetPkg}"; exit 0; fi
         done
-        if [ "${action}" = "enable" ]; then
-          setprop debug.sf.latch_unsignaled 1
-          setprop debug.sf.auto_latch_unsignaled 0
-          setprop debug.hwui.disable_draw_blur 1
-          setprop ro.surface_flinger.supports_background_blur 0
-          setprop debug.renderengine.backend skiagl
-          sync; echo 3 > /proc/sys/vm/drop_caches 2>/dev/null
-        else
-          setprop debug.sf.latch_unsignaled ""
-          setprop debug.sf.auto_latch_unsignaled ""
-          setprop debug.hwui.disable_draw_blur ""
-          setprop ro.surface_flinger.supports_background_blur ""
-        fi
+        echo "ERROR_SCRIPT_NOT_FOUND"
       `;
 
       pill.textContent = enable ? "Activando..." : "Desactivando...";
-      await runShell(cmd);
+      const res = await runShell(cmd);
 
       if (enable) {
-        pill.textContent = "Activo (Ultra FPS)";
-        pill.style.color = "#34d399";
-        txtVsync.textContent = "Desbloqueada (Latch)";
-        txtVsync.style.color = "#34d399";
-        txtCpu.textContent = "Prioridad -20 (Big Cores)";
-        txtCpu.style.color = "#38bdf8";
-        txtBlur.textContent = "Desactivado (+20% Mali)";
+        const isPartial = res && res.includes('PARTIAL_ADB');
+        pill.textContent = isPartial ? "Activo (Modo ADB Parcial)" : "Activo (Ultra FPS)";
+        pill.style.color = isPartial ? "#fbbf24" : "#34d399";
+        txtVsync.textContent = isPartial ? "Requiere Root" : "Desbloqueada (Latch)";
+        txtVsync.style.color = isPartial ? "#fbbf24" : "#34d399";
+        txtCpu.textContent = isPartial ? "Requiere Root (SCHED_FIFO)" : "SCHED_FIFO 99 (Big Cores)";
+        txtCpu.style.color = isPartial ? "#fbbf24" : "#38bdf8";
+        txtBlur.textContent = "Blur ventanas OFF";
         txtBlur.style.color = "#34d399";
-        txtRam.textContent = "Optimizada (Zero LMKD)";
-        txtRam.style.color = "#34d399";
+        txtRam.textContent = isPartial ? "Requiere Root (drop_caches)" : "Optimizada";
+        txtRam.style.color = isPartial ? "#fbbf24" : "#34d399";
+        if (isPartial) showToast("Modo ADB: se desactivó el blur de ventanas. SCHED_FIFO y drop_caches requieren Root.", "warn");
       } else {
         pill.textContent = "Inactivo";
         pill.style.color = "#94a3b8";
-        txtVsync.textContent = "Estándar (Con bloqueo)";
+        txtVsync.textContent = "Estándar";
         txtVsync.style.color = "#f8fafc";
         txtCpu.textContent = "Prioridad Normal";
         txtCpu.style.color = "#f8fafc";
-        txtBlur.textContent = "Activo (Carga ROM)";
+        txtBlur.textContent = "Estándar";
         txtBlur.style.color = "#f8fafc";
         txtRam.textContent = "Estándar";
         txtRam.style.color = "#f8fafc";
@@ -1180,15 +1214,16 @@
         for S in \
           "$AXERONDIR/plugins/ax_mali_core_optimizer/scripts/ram_tweak.sh" \
           "$MODDIR/scripts/ram_tweak.sh" \
-          "./scripts/ram_tweak.sh" \
-          "$AXERONDIR/plugins/ax_mali_core_optimizer/scripts/fps_boost.sh"; do
-          if [ -f "$S" ]; then sh "$S" purge; exit 0; fi
+          "./scripts/ram_tweak.sh"; do
+          if [ -f "$S" ]; then sh "$S" purge; exit $?; fi
         done
-        sync; echo 3 > /proc/sys/vm/drop_caches 2>/dev/null
-        echo "SUCCESS: RAM Purged"
       `;
-      await runShell(cmd);
-      alert("¡Memoria RAM purgada con éxito! Caches del kernel liberadas para evitar congelamientos en tu partida.");
+      const res = await runShell(cmd);
+      if (res && res.includes('NO_ROOT')) {
+        showToast("Purgar /proc/sys/vm/drop_caches requiere acceso Root.", "warn");
+      } else {
+        showToast("Caché de páginas RAM purgada correctamente.", "ok");
+      }
     }
 
     async function toggleRamStutter(enable) {
@@ -1200,23 +1235,18 @@
           "$AXERONDIR/plugins/ax_mali_core_optimizer/scripts/ram_tweak.sh" \
           "$MODDIR/scripts/ram_tweak.sh" \
           "./scripts/ram_tweak.sh"; do
-          if [ -f "$S" ]; then sh "$S" ${action}; exit 0; fi
+          if [ -f "$S" ]; then sh "$S" ${action}; exit $?; fi
         done
-        if [ "${enable}" = "true" ]; then
-          echo 50 > /proc/sys/vm/swappiness 2>/dev/null
-          echo 50 > /proc/sys/vm/vfs_cache_pressure 2>/dev/null
-          echo 0 > /proc/sys/vm/page-cluster 2>/dev/null
-          echo 0 > /proc/sys/vm/compact_memory 2>/dev/null
-          sync; echo 3 > /proc/sys/vm/drop_caches 2>/dev/null
-        else
-          echo 100 > /proc/sys/vm/swappiness 2>/dev/null
-          echo 100 > /proc/sys/vm/vfs_cache_pressure 2>/dev/null
-          echo 3 > /proc/sys/vm/page-cluster 2>/dev/null
-        fi
       `;
-      await runShell(cmd);
-      pill.textContent = enable ? "Activo (Anti-Stutter 50)" : "Inactivo";
-      pill.style.color = enable ? "#34d399" : "#94a3b8";
+      const res = await runShell(cmd);
+      if (enable && res && res.includes('PARTIAL_ADB')) {
+        pill.textContent = "Parcial ADB (Sin Root)";
+        pill.style.color = "#fbbf24";
+        showToast("Sin Root: solo se aplicó restricción appops en fondo; VM y SIGSTOP requieren Root.", "warn");
+      } else {
+        pill.textContent = enable ? "Activo (Anti-Stutter 50)" : "Inactivo";
+        pill.style.color = enable ? "#34d399" : "#94a3b8";
+      }
     }
 
     async function freezeAppsManual() {
@@ -1228,8 +1258,10 @@
           if [ -f "$S" ]; then sh "$S" freeze; exit 0; fi
         done
       `;
-      await runShell(cmd);
-      alert("Apps secundarias congeladas con éxito mediante SIGSTOP. 0% consumo de CPU.");
+      const res = await runShell(cmd);
+      const count = res ? res.trim().split('\n').pop() : '0';
+      document.getElementById('txtFrozenAppsCount').textContent = `${count} PIDs pausados`;
+      showToast(`Congelamiento finalizado (${count} procesos SIGSTOP).`, "ok");
     }
 
     async function thawAppsManual() {
@@ -1242,7 +1274,8 @@
         done
       `;
       await runShell(cmd);
-      alert("Todas las aplicaciones han sido descongeladas y restauradas a la normalidad.");
+      document.getElementById('txtFrozenAppsCount').textContent = "Apps reanudadas";
+      showToast("Aplicaciones reanudadas y appops restaurados.", "ok");
     }
 
     async function auditRamInfo() {
@@ -1253,13 +1286,10 @@
           "./scripts/ram_tweak.sh"; do
           if [ -f "$S" ]; then sh "$S" audit; exit 0; fi
         done
-        echo "--- Reporte Rápido de Memoria ---"
-        grep -E "MemTotal|MemAvailable|SwapTotal|SwapFree" /proc/meminfo
-        echo "swappiness: $(cat /proc/sys/vm/swappiness 2>/dev/null)"
       `;
-      const res = await runShell(cmd);
+      await runShell(cmd);
       switchTab('diag');
-      alert("Auditoría de memoria completada. Revisa la pestaña de 'Hardware' para ver el diagnóstico.");
+      showToast("Auditoría de memoria generada en la pestaña Hardware.", "ok");
     }
 
     async function applyGpuFloor(mode) {
@@ -1270,22 +1300,28 @@
           "$AXERONDIR/plugins/ax_mali_core_optimizer/scripts/governor_tweak.sh" \
           "$MODDIR/scripts/governor_tweak.sh" \
           "./scripts/governor_tweak.sh"; do
-          if [ -f "$S" ]; then sh "$S" ${mode}; exit 0; fi
+          if [ -f "$S" ]; then sh "$S" ${mode}; exit $?; fi
         done
       `;
-      await runShell(cmd);
+      const res = await runShell(cmd);
+      if (res && (res.includes('NO_ROOT') || res.includes('ERROR_'))) {
+        pill.textContent = res.includes('NO_ROOT') ? "Requiere Root" : "Nodo no compatible";
+        pill.style.color = "#f87171";
+        showToast(res.trim().split('\n').pop(), "warn");
+        return;
+      }
       if (mode === 'floor') {
-        pill.textContent = "Piso Activo (Floor 400-500 MHz)";
+        pill.textContent = "Piso Activo";
         pill.style.color = "#34d399";
-        alert("¡Piso de frecuencia fijado! La GPU Mali no bajará a reposo (150 MHz) mientras juegues.");
+        showToast("Piso de frecuencia GPU Mali aplicado.", "ok");
       } else if (mode === 'performance') {
         pill.textContent = "Rendimiento Máximo";
         pill.style.color = "#f59e0b";
-        alert("Perfil Rendimiento Máximo activado.");
+        showToast("Perfil Rendimiento Máximo aplicado.", "ok");
       } else {
         pill.textContent = "Gobernador Original";
         pill.style.color = "#94a3b8";
-        alert("Frecuencias y gobernador restaurados al estado original.");
+        showToast("Frecuencias y gobernador GPU restaurados.", "ok");
       }
     }
 
@@ -1297,9 +1333,6 @@
           "./scripts/governor_tweak.sh"; do
           if [ -f "$S" ]; then sh "$S" diag; exit 0; fi
         done
-        echo "--- Frecuencias de GPU ---"
-        cat /sys/class/misc/mali0/device/devfreq/*/available_frequencies 2>/dev/null
-        cat /sys/class/misc/mali0/device/devfreq/*/cur_freq 2>/dev/null
       `;
       await runShell(cmd);
       switchTab('diag');
@@ -1317,9 +1350,15 @@
           if [ -f "$S" ]; then sh "$S" ${action}; exit 0; fi
         done
       `;
-      await runShell(cmd);
-      pill.textContent = enable ? "Activo (GMS Shield)" : "Inactivo";
-      pill.style.color = enable ? "#34d399" : "#94a3b8";
+      const res = await runShell(cmd);
+      if (enable && res && res.includes('PARTIAL_ADB')) {
+        pill.textContent = "Parcial (ADB)";
+        pill.style.color = "#fbbf24";
+        showToast("GMS Shield ADB activo (paquetes basura + AppOps). Componentes internos GMS requieren Root.", "warn");
+      } else {
+        pill.textContent = enable ? "Activo (GMS Shield)" : "Inactivo";
+        pill.style.color = enable ? "#34d399" : "#94a3b8";
+      }
     }
 
     async function auditGmsShield() {
@@ -1343,8 +1382,8 @@
       const txtMtkBoost = document.getElementById('txtMtkBoost');
       const txtGlove = document.getElementById('txtGlove');
       const txtDelay = document.getElementById('txtDelay');
-
       const action = enable ? "enable" : "disable";
+
       const cmd = `
         for S in \
           "$AXERONDIR/plugins/ax_mali_core_optimizer/scripts/touch_boost.sh" \
@@ -1352,49 +1391,36 @@
           "./scripts/touch_boost.sh"; do
           if [ -f "$S" ]; then sh "$S" ${action}; exit 0; fi
         done
-        if [ "${action}" = "enable" ]; then
-          settings put secure long_press_timeout 250
-          settings put system pointer_speed 7
-          setprop debug.input.velocitytracker.strategy impulse
-          setprop view.touch_slop 1
-          setprop view.scroll_friction 0.005
-          setprop debug.sf.disable_backpressure 1
-        else
-          settings put secure long_press_timeout 400
-          settings put system pointer_speed 0
-          setprop debug.input.velocitytracker.strategy ""
-          setprop view.touch_slop ""
-          setprop view.scroll_friction ""
-          setprop debug.sf.disable_backpressure ""
-        fi
       `;
 
       pill.textContent = enable ? "Activando..." : "Desactivando...";
-      await runShell(cmd);
+      const res = await runShell(cmd);
 
       if (enable) {
-        pill.textContent = "Activo (Insignia)";
-        pill.style.color = "#34d399";
-        txtSlop.textContent = "1 px (Instantáneo)";
+        const isPartial = res && res.includes('PARTIAL_ADB');
+        pill.textContent = isPartial ? "Activo (ADB Settings)" : "Activo (Full)";
+        pill.style.color = isPartial ? "#fbbf24" : "#34d399";
+        txtSlop.textContent = "Tap Duration 0 ms";
         txtSlop.style.color = "#34d399";
-        txtFriction.textContent = "0.005 (Mantequilla)";
+        txtFriction.textContent = "Pointer Speed +7";
         txtFriction.style.color = "#34d399";
-        txtTracker.textContent = "Impulse (1:1)";
+        txtTracker.textContent = "Multi-Press 200 ms";
         txtTracker.style.color = "#34d399";
-        txtMtkBoost.textContent = "GED & FPSGO ON";
-        txtMtkBoost.style.color = "#34d399";
-        txtGlove.textContent = "Alta Ganancia ON";
-        txtGlove.style.color = "#34d399";
+        txtMtkBoost.textContent = isPartial ? "Requiere Root" : "GED & FPSGO ON";
+        txtMtkBoost.style.color = isPartial ? "#fbbf24" : "#34d399";
+        txtGlove.textContent = isPartial ? "Requiere Root" : "Nodos aplicados";
+        txtGlove.style.color = isPartial ? "#fbbf24" : "#34d399";
         txtDelay.textContent = "250 ms";
         txtDelay.style.color = "#34d399";
+        if (isPartial) showToast("Modo ADB: Settings táctiles aplicados. Glove Mode y MediaTek GED requieren Root.", "warn");
       } else {
         pill.textContent = "Inactivo";
         pill.style.color = "#94a3b8";
-        txtSlop.textContent = "Estándar (8-16px)";
+        txtSlop.textContent = "Estándar";
         txtSlop.style.color = "#f8fafc";
-        txtFriction.textContent = "0.015 (Estándar)";
+        txtFriction.textContent = "Estándar";
         txtFriction.style.color = "#f8fafc";
-        txtTracker.textContent = "LSQ2 (Con inercia)";
+        txtTracker.textContent = "Estándar";
         txtTracker.style.color = "#f8fafc";
         txtMtkBoost.textContent = "Inactivo";
         txtMtkBoost.style.color = "#f8fafc";
@@ -1413,28 +1439,23 @@
           "$AXERONDIR/plugins/ax_mali_core_optimizer/scripts/surface_tweak.sh" \
           "$MODDIR/scripts/surface_tweak.sh" \
           "./scripts/surface_tweak.sh"; do
-          if [ -f "$S" ]; then sh "$S" enable ${selectedScaleFactor} ${pkg} ${restartParam}; exit 0; fi
+          if [ -f "$S" ]; then sh "$S" enable ${selectedScaleFactor} "${pkg}" ${restartParam}; exit $?; fi
         done
-        cmd game reset-mode ${pkg}
-        cmd game mode performance ${pkg}
-        device_config set_sync_disabled_for_tests persistent
-        device_config put game_overlay ${pkg} "mode=2,downscaleFactor=${selectedScaleFactor}:fps=60:useAngle=false"
-        setprop debug.mali.render_scale ${selectedScaleFactor}
-        if [ "${restartParam}" = "1" ]; then am force-stop ${pkg}; fi
-        echo "SUCCESS"
       `;
 
       const res = await runShell(cmd);
       if (res && res.includes("ERROR_SECURITY_BLOCKED")) {
-        alert("Bloqueo de seguridad: Tu dispositivo no cuenta con Android 12+. Modo cancelado para proteger tu pantalla.");
+        showToast("Bloqueado: el Modo Batata requiere Android 12 (SDK 31+) o superior.", "warn");
+        return;
+      }
+      if (res && res.includes("ERROR_")) {
+        showToast(res.trim().split('\n').pop(), "warn");
         return;
       }
       let scaleLabel = selectedScaleFactor === '0.25' ? 'Batata 25%' : (selectedScaleFactor === '0.5' ? 'Batata 50%' : '70%');
       document.getElementById('sdkStatusChip').textContent = `Activo (${scaleLabel})`;
       document.getElementById('sdkStatusChip').style.color = "#34d399";
-      if (shouldRestart) {
-        alert(`¡Modo Batata (${scaleLabel}) aplicado a ${pkg}! El juego se cerró para arrancar con gráficos reducidos en cuanto lo abras.`);
-      }
+      showToast(`Modo Batata (${scaleLabel}) aplicado a ${pkg}.`, "ok");
     }
 
     async function restoreNativeGraphics() {
@@ -1444,17 +1465,13 @@
           "$AXERONDIR/plugins/ax_mali_core_optimizer/scripts/surface_tweak.sh" \
           "$MODDIR/scripts/surface_tweak.sh" \
           "./scripts/surface_tweak.sh"; do
-          if [ -f "$S" ]; then sh "$S" disable ${pkg}; exit 0; fi
+          if [ -f "$S" ]; then sh "$S" disable "${pkg}"; exit 0; fi
         done
-        cmd game mode standard ${pkg}
-        device_config delete game_overlay ${pkg}
-        device_config set_sync_disabled_for_tests none
-        setprop debug.mali.render_scale ""
       `;
       await runShell(cmd);
       document.getElementById('sdkStatusChip').textContent = "Gráficos Nativos (100%)";
       document.getElementById('sdkStatusChip').style.color = "#38bdf8";
-      alert("Gráficos nativos restaurados al 100%.");
+      showToast("Gráficos nativos restaurados al 100%.", "ok");
     }
 
     async function scanInstalledApps() {
@@ -1491,21 +1508,21 @@
           "$AXERONDIR/plugins/ax_mali_core_optimizer/scripts/angle_tweak.sh" \
           "$MODDIR/scripts/angle_tweak.sh" \
           "./scripts/angle_tweak.sh"; do
-          if [ -f "$S" ]; then sh "$S" enable ${pkg} ${restartParam}; exit 0; fi
+          if [ -f "$S" ]; then sh "$S" enable "${pkg}" ${restartParam}; exit $?; fi
         done
-        settings put global angle_gl_driver_selection_pkgs ${pkg}
-        settings put global angle_gl_driver_selection_values angle
-        if [ "${restartParam}" = "1" ]; then am force-stop ${pkg}; fi
-        echo "SUCCESS"
       `;
       const res = await runShell(cmd);
       if (res && res.includes("ERROR_VULKAN_1_1_REQUIRED")) {
-        alert("Bloqueo de seguridad: Tu teléfono no tiene soporte para Vulkan 1.1. Modo bloqueado para evitar pantallas negras.");
+        showToast("Bloqueado: se requiere Vulkan 1.1+ para activar ANGLE.", "warn");
+        return;
+      }
+      if (res && res.includes("ERROR_")) {
+        showToast(res.trim().split('\n').pop(), "warn");
         return;
       }
       document.getElementById('txtAngleDriver').textContent = "ANGLE (Vulkan Backend) ✓";
       document.getElementById('txtAngleDriver').style.color = "#34d399";
-      alert(`¡Capa ANGLE (Vulkan) activada para ${pkg}! El juego ahora traduce OpenGL ES a Vulkan en tu GPU Mali.`);
+      showToast(`Capa ANGLE activada para ${pkg}.`, "ok");
     }
 
     async function restoreNativeOpenGL() {
@@ -1515,27 +1532,37 @@
           "$AXERONDIR/plugins/ax_mali_core_optimizer/scripts/angle_tweak.sh" \
           "$MODDIR/scripts/angle_tweak.sh" \
           "./scripts/angle_tweak.sh"; do
-          if [ -f "$S" ]; then sh "$S" disable ${pkg}; exit 0; fi
+          if [ -f "$S" ]; then sh "$S" disable "${pkg}"; exit 0; fi
         done
-        settings delete global angle_gl_driver_selection_pkgs
-        settings delete global angle_gl_driver_selection_values
-        echo "SUCCESS"
       `;
       await runShell(cmd);
       document.getElementById('txtAngleDriver').textContent = "OpenGL ES Nativo";
       document.getElementById('txtAngleDriver').style.color = "#38bdf8";
-      alert("Controlador gráfico restaurado al OpenGL ES nativo.");
+      showToast("Controlador gráfico restaurado a OpenGL ES nativo.", "ok");
+    }
+
+    function parseVulkanInt(rawVal) {
+      const clean = (rawVal || '').trim();
+      if (/^0x/i.test(clean)) return parseInt(clean, 16) || 0;
+      return parseInt(clean.replace(/[^0-9]/g, ''), 10) || 0;
     }
 
     async function checkAllStatus() {
-      const res = await runShell('getprop ro.build.version.sdk; getprop ro.product.cpu.abi; getprop ro.build.version.release');
+      const res = await runShell('getprop ro.build.version.sdk; getprop ro.product.cpu.abi; getprop ro.build.version.release; id -u');
       if (res) {
         const lines = res.trim().split('\n');
         const sdk = parseInt(lines[0] || '0', 10);
         const abi = lines[1] || 'arm64-v8a';
-        const rel = lines[2] || '13';
+        const rel = lines[2] || '?';
+        const uid = (lines[3] || '').trim();
 
-        document.getElementById('diagArch').textContent = abi.includes('64') ? '64-bit (AArch64)' : '32-bit (ARMv7)';
+        const privBadge = document.getElementById('globalArchBadge');
+        if (privBadge) {
+          privBadge.textContent = uid === '0' ? 'ROOT ✓' : 'ADB (No-Root)';
+          privBadge.style.color = uid === '0' ? '#34d399' : '#fbbf24';
+        }
+
+        document.getElementById('diagArch').textContent = (abi.includes('64') ? '64-bit (AArch64)' : '32-bit (ARMv7)') + (uid === '0' ? ' • Root' : ' • ADB');
         document.getElementById('diagAndroid').textContent = `Android ${rel} (API ${sdk})`;
 
         const chip = document.getElementById('sdkStatusChip');
@@ -1551,12 +1578,11 @@
           chip.textContent = "Bloqueado (< Android 12)";
           chip.style.color = "#f87171";
           banner.className = "banner banner-warning";
-          bannerTxt.textContent = `Android ${rel} detectado. Por seguridad estricta, el Modo Batata está bloqueado para no dañar tu pantalla.`;
+          bannerTxt.textContent = `Android ${rel} detectado. Por seguridad estricta, el Modo Batata está bloqueado.`;
           document.getElementById('btnApplyRestart').disabled = true;
         }
       }
 
-      // Comprobación de Vulkan 1.1 para la Capa ANGLE
       const vkRes = await runShell('pm list features 2>/dev/null | grep -i "android.hardware.vulkan.version"');
       const vkChip = document.getElementById('vulkanStatusChip');
       const vkBanner = document.getElementById('vulkanBanner');
@@ -1564,8 +1590,7 @@
       const vkVersionText = document.getElementById('txtVkVersion');
 
       if (vkRes && vkRes.includes('=')) {
-        const numStr = vkRes.split('=')[1].replace(/[^0-9]/g, '');
-        const vkInt = parseInt(numStr, 10) || 0;
+        const vkInt = parseVulkanInt(vkRes.split('=')[1]);
         const major = Math.floor(vkInt / 4194304);
         const rem = vkInt % 4194304;
         const minor = Math.floor(rem / 4096);
@@ -1574,17 +1599,15 @@
         vkVersionText.textContent = `Vulkan ${major}.${minor}.${patch}`;
 
         if (vkInt >= 4198400) {
-          // Soporta Vulkan 1.1 o superior
           vkChip.textContent = `Vulkan ${major}.${minor} (Compatible ✓)`;
           vkChip.style.color = "#34d399";
           vkBanner.className = "banner banner-success";
-          vkBannerTxt.textContent = `Tu GPU soporta Vulkan ${major}.${minor}.${patch} (>= 1.1). La capa ANGLE está 100% disponible para forzar Vulkan en tus juegos.`;
+          vkBannerTxt.textContent = `Tu GPU soporta Vulkan ${major}.${minor}.${patch} (>= 1.1). La capa ANGLE está disponible.`;
         } else {
-          // Inferior a Vulkan 1.1
           vkChip.textContent = `Bloqueado (< Vulkan 1.1)`;
           vkChip.style.color = "#f87171";
           vkBanner.className = "banner banner-warning";
-          vkBannerTxt.textContent = `Tu dispositivo cuenta con Vulkan ${major}.${minor} (< 1.1). Por seguridad, ANGLE permanece desactivado por defecto para evitar pantallas negras.`;
+          vkBannerTxt.textContent = `Tu dispositivo cuenta con Vulkan ${major}.${minor} (< 1.1). ANGLE desactivado por defecto.`;
           document.getElementById('btnApplyAngleRestart').disabled = true;
           document.getElementById('btnApplyAngleHot').disabled = true;
         }
@@ -1595,7 +1618,6 @@
       }
     }
 
-    // Control de I/O Readahead y Compilación AOT (dex2oat)
     function setIoPkg(pkg, chipEl) {
       document.getElementById('ioPkgInput').value = pkg;
       document.querySelectorAll('#tab-io .game-chip').forEach(c => c.classList.remove('active'));
@@ -1611,16 +1633,16 @@
           "$AXERONDIR/plugins/ax_mali_core_optimizer/scripts/io_aot_tweak.sh" \
           "$MODDIR/scripts/io_aot_tweak.sh" \
           "./scripts/io_aot_tweak.sh"; do
-          if [ -f "$S" ]; then sh "$S" ${action}; exit 0; fi
+          if [ -f "$S" ]; then sh "$S" ${action}; exit $?; fi
         done
-        if [ "${enable}" = "true" ]; then
-          for dev in /sys/block/*/queue; do
-            [ -w "$dev/read_ahead_kb" ] && echo 1024 > "$dev/read_ahead_kb" 2>/dev/null
-            [ -w "$dev/iostats" ] && echo 0 > "$dev/iostats" 2>/dev/null
-          done
-        fi
       `;
-      await runShell(cmd);
+      const res = await runShell(cmd);
+      if (res && res.includes('NO_ROOT')) {
+        pill.textContent = "I/O requiere Root (AOT sí funciona)";
+        pill.style.color = "#fbbf24";
+        showToast("El readahead /sys/block/ requiere Root; la compilación AOT abajo sí funciona sin Root.", "warn");
+        return;
+      }
       pill.textContent = enable ? "Readahead 1024 KB • iostats 0" : "Inactivo (Fábrica)";
       pill.style.color = enable ? "#34d399" : "#94a3b8";
     }
@@ -1632,14 +1654,16 @@
           "$AXERONDIR/plugins/ax_mali_core_optimizer/scripts/io_aot_tweak.sh" \
           "$MODDIR/scripts/io_aot_tweak.sh" \
           "./scripts/io_aot_tweak.sh"; do
-          if [ -f "$S" ]; then sh "$S" compile "${pkg}" "${mode}"; exit 0; fi
+          if [ -f "$S" ]; then sh "$S" compile "${pkg}" "${mode}"; exit $?; fi
         done
-        cmd package compile -m ${mode} -f ${pkg}
-        echo "SUCCESS: Compilación finalizada."
       `;
-      alert(`⏳ Iniciando compilación AOT (${mode}) para ${pkg}. Esto puede tomar unos segundos...`);
+      showToast(`Compilando AOT (${mode}) para ${pkg}...`, "ok");
       const res = await runShell(cmd);
-      alert(`¡Compilación AOT completada para ${pkg}! El juego ahora cargará a máxima velocidad sin retardo de JIT.`);
+      if (res && res.includes('ERROR_')) {
+        showToast(res.trim().split('\n').pop(), "warn");
+      } else {
+        showToast(`Compilación AOT (${mode}) completada para ${pkg}.`, "ok");
+      }
     }
 
     async function resetAotCompile() {
@@ -1651,10 +1675,9 @@
           "./scripts/io_aot_tweak.sh"; do
           if [ -f "$S" ]; then sh "$S" reset "${pkg}"; exit 0; fi
         done
-        cmd package compile --reset ${pkg}
       `;
       await runShell(cmd);
-      alert(`Compilación de ${pkg} restaurada a los valores de fábrica.`);
+      showToast(`Compilación de ${pkg} restaurada a fábrica.`, "ok");
     }
 
     async function auditIoAot() {
@@ -1668,9 +1691,9 @@
         done
       `;
       await runShell(cmd);
+      switchTab('diag');
     }
 
-    // Control de Thermal Userspace Shield
     async function toggleThermalShield(enable) {
       const pill = document.getElementById('thermalStatusPill');
       const action = enable ? "enable" : "disable";
@@ -1682,16 +1705,16 @@
           "./scripts/thermal_tweak.sh"; do
           if [ -f "$S" ]; then sh "$S" ${action}; exit 0; fi
         done
-        if [ "${enable}" = "true" ]; then
-          cmd appops set com.xiaomi.joyose RUN_IN_BACKGROUND ignore 2>/dev/null
-          cmd appops set com.samsung.android.game.gos RUN_IN_BACKGROUND ignore 2>/dev/null
-          [ -w /sys/module/ged/parameters/dvfs_margin_value ] && echo 50 > /sys/module/ged/parameters/dvfs_margin_value 2>/dev/null
-          [ -w /sys/module/ged/parameters/gpu_idle ] && echo 0 > /sys/module/ged/parameters/gpu_idle 2>/dev/null
-        fi
       `;
-      await runShell(cmd);
-      pill.textContent = enable ? "Thermal Shield Activo ✓" : "Inactivo (Fábrica)";
-      pill.style.color = enable ? "#34d399" : "#94a3b8";
+      const res = await runShell(cmd);
+      if (enable && res && res.includes('PARTIAL_ADB')) {
+        pill.textContent = "Parcial ADB (Sin Root)";
+        pill.style.color = "#fbbf24";
+        showToast("Modo ADB: appops aplicado a throttlers. SIGSTOP y nodos GED requieren Root.", "warn");
+      } else {
+        pill.textContent = enable ? "Thermal Shield Activo ✓" : "Inactivo (Fábrica)";
+        pill.style.color = enable ? "#34d399" : "#94a3b8";
+      }
     }
 
     async function auditThermal() {
@@ -1704,6 +1727,7 @@
         done
       `;
       await runShell(cmd);
+      switchTab('diag');
     }
 
     window.addEventListener('DOMContentLoaded', () => {
