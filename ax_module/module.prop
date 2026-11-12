@@ -1,11 +1,8 @@
-# ==============================================================================
-# Propiedades del Módulo para AX Manager / Axeron
-# ==============================================================================
 id=ax_mali_core_optimizer
 name=Mali GPU Core Engine
-version=v1.2.0
-versionCode=120
+version=v1.3.0
+versionCode=130
 author=AX Mobile Community
-description=Control de GPU Mali: Sensibilidad competitiva (Slop 1px, Zero Backpressure) y Modo Batata exclusivo Android 12+ (25%, 50%, 70%) con anulación de Game Booster.
-axeronPlugin=1000
+description=Control de GPU Mali: Ultra FPS Engine (Latch Unsignaled, Core Affinity, Disable Blur, RAM Purge), Touch Slop 1px y Modo Batata (Android 12+).
+axeronPlugin=30000
 minApi=26

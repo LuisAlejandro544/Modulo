@@ -1,9 +1,8 @@
 /**
  * @file moduleData.ts
- * @description Lógica desacoplada y datos del módulo AX Manager para procesadores Mali.
+ * @description Lógica desacoplada y datos del módulo AX Mali Core Engine para AxManager, KernelSU, APatch y Magisk.
  * Contiene validaciones de seguridad (como verificar que no existan propiedades prohibidas
- * Contiene validaciones de seguridad (como verificar que no existan propiedades prohibidas
- * permanentes), metadatos del plugin e información de compatibilidad de arquitecturas.
+ * permanentes del sistema), metadatos del plugin e información de compatibilidad de arquitecturas.
  */
 
 export interface ScriptFileInfo {
@@ -56,6 +55,14 @@ export function classifyAbi(abi: string): '32-bit' | '64-bit' | 'unknown' {
  */
 export const MODULE_SCRIPTS: ScriptFileInfo[] = [
   {
+    name: 'fps_boost.sh',
+    path: '/ax_module/scripts/fps_boost.sh',
+    category: 'runtime',
+    description: 'Ultra FPS Engine: Desbloqueo de V-Sync Latch Unsignaled, asignación prioritaria de hilos a Big Cores (Renice -20 en top-app), supresión de HWUI DrawBlur y purga de RAM (Zero Memory Freezes). Activado por defecto.',
+    supportedArch: '32-bit & 64-bit',
+    codeSnippet: `enable_fps_boost() {\n  backup_fps_settings\n  setprop debug.sf.latch_unsignaled 1\n  setprop debug.sf.auto_latch_unsignaled 0\n  setprop debug.hwui.disable_draw_blur 1\n  renice -n -20 -p "$PID"\n  sync; echo 3 > /proc/sys/vm/drop_caches\n}`,
+  },
+  {
     name: 'touch_boost.sh',
     path: '/ax_module/scripts/touch_boost.sh',
     category: 'runtime',
@@ -67,15 +74,15 @@ export const MODULE_SCRIPTS: ScriptFileInfo[] = [
     name: 'module.prop',
     path: '/ax_module/module.prop',
     category: 'config',
-    description: 'Archivo de propiedades del plugin para AxManager (ID, versión v1.2.0, API universal axeronPlugin=1000).',
+    description: 'Descriptor de propiedades del módulo para AxManager, KernelSU y Magisk (inicia en línea 1 con id=, versión v1.3.0, API axeronPlugin=30000).',
     supportedArch: '32-bit & 64-bit',
-    codeSnippet: `id=ax_mali_core_optimizer\nname=Mali GPU Core Engine\nversion=v1.2.0\nversionCode=120\nauthor=AX Mobile Community\naxeronPlugin=1000`,
+    codeSnippet: `id=ax_mali_core_optimizer\nname=Mali GPU Core Engine\nversion=v1.3.0\nversionCode=130\nauthor=AX Mobile Community\naxeronPlugin=30000`,
   },
   {
     name: 'customize.sh',
     path: '/ax_module/customize.sh',
     category: 'install',
-    description: 'Instalador de AxManager: otorga permisos de ejecución (+x) y detecta la arquitectura.',
+    description: 'Instalador universal: otorga permisos de ejecución (0755), configura puente update-binary y detecta arquitectura.',
     supportedArch: '32-bit & 64-bit',
     codeSnippet: `ui_print "- Asignando permisos de ejecución a scripts internos..."\nchmod -R 0755 "$MODPATH/scripts"\nABI=$(getprop ro.product.cpu.abi)\nui_print "- Arquitectura de dispositivo: $ABI"`,
   },
@@ -83,9 +90,9 @@ export const MODULE_SCRIPTS: ScriptFileInfo[] = [
     name: 'service.sh',
     path: '/ax_module/service.sh',
     category: 'runtime',
-    description: 'Servicio en segundo plano ejecutado en modo standalone busybox por el servidor AxManager.',
+    description: 'Servicio en segundo plano que ejecuta automáticamente el Ultra FPS Engine por defecto tras el arranque del sistema.',
     supportedArch: '32-bit & 64-bit',
-    codeSnippet: `while [ "$(getprop sys.boot_completed)" != "1" ]; do sleep 2; done\n. "$MODDIR/scripts/mali_common.sh"\nlog_info "Servicio base de AX Mali Optimizer iniciado correctamente."`,
+    codeSnippet: `while [ "$(getprop sys.boot_completed)" != "1" ]; do sleep 2; done\n. "$MODDIR/scripts/mali_common.sh"\nsh "$MODDIR/scripts/fps_boost.sh" enable auto`,
   },
   {
     name: 'mali_common.sh',
@@ -125,7 +132,7 @@ export const MODULE_SCRIPTS: ScriptFileInfo[] = [
     category: 'install',
     description: 'Script de limpieza ejecutado al desinstalar el módulo desde la app de AxManager.',
     supportedArch: '32-bit & 64-bit',
-    codeSnippet: `rm -f /data/local/tmp/ax_mali_optimizer.log /data/local/tmp/mali_touch_*.state\necho "Módulo AX Mali Optimizer desinstalado correctamente."`,
+    codeSnippet: `rm -f /data/local/tmp/ax_mali_optimizer.log /data/local/tmp/mali_*.state\necho "Módulo AX Mali Optimizer desinstalado correctamente."`,
   },
 ];
 

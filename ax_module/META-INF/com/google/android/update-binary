@@ -1,0 +1,45 @@
+#!/sbin/sh
+##########################################################################################
+#
+# AX Mali Core Engine - Universal Module Installer Bridge
+# Compatible con KernelSU, APatch, Magisk y AX Manager
+#
+##########################################################################################
+
+umask 022
+
+ui_print() {
+  echo "$1"
+}
+
+OUTFD=$2
+ZIPFILE=$3
+
+# Cargar utilidades oficiales de root managers si están disponibles
+if [ -f /data/adb/magisk/util_functions.sh ]; then
+  . /data/adb/magisk/util_functions.sh
+elif [ -f /data/adb/ksu/bin/util_functions.sh ]; then
+  . /data/adb/ksu/bin/util_functions.sh
+elif [ -f /data/adb/ap/bin/util_functions.sh ]; then
+  . /data/adb/ap/bin/util_functions.sh
+fi
+
+# Si el entorno provee la función oficial install_module, delegar en el gestor
+if type install_module >/dev/null 2>&1; then
+  install_module
+  exit 0
+fi
+
+# Instalación manual de contingencia
+TMPDIR=/data/local/tmp/ax_module_tmp
+rm -rf "$TMPDIR"
+mkdir -p "$TMPDIR"
+
+unzip -o "$ZIPFILE" module.prop -d "$TMPDIR" >/dev/null 2>&1
+if [ ! -f "$TMPDIR/module.prop" ]; then
+  ui_print "! Error: module.prop not detected!"
+  exit 1
+fi
+
+ui_print "- Paquete AX Mali Core verificado con éxito."
+exit 0

@@ -14,45 +14,47 @@ on:
       version_tag:
         description: 'Versión o etiqueta para el archivo ZIP generado'
         required: false
-        default: 'v1.0.0'
+        default: 'v1.3.0'
 
 jobs:
   package-module:
-    name: Empaquetar Módulo AX Manager
+    name: Empaquetar Módulo AX Manager & KernelSU
     runs-on: ubuntu-latest
 
     steps:
       - name: Descargar repositorio
         uses: actions/checkout@v4
 
-      - name: Auditoría estricta de seguridad (Verificar cero persist.sys.*)
+      - name: Auditoría estricta de seguridad (Verificar cero propiedades persistentes)
         run: |
           echo "Ejecutando auditoría de seguridad en scripts de ax_module..."
           if grep -rnE "persist\.sys\." ax_module/; then
-            echo "::error::Infracción crítica de seguridad: Se detectó el uso de 'persist.sys.*' en los scripts del módulo."
+            echo "::error::Infracción crítica de seguridad: Se detectó el uso de propiedades persistentes en ax_module."
             exit 1
           else
-            echo "Auditoría aprobada: Cero referencias a persist.sys.* encontradas."
+            echo "Auditoría aprobada: Cero referencias críticas encontradas."
           fi
 
-      - name: Asignar permisos y verificar estructura de archivos
+      - name: Asignar permisos y verificar estructura de archivos universal
         run: |
-          echo "Verificando archivos requeridos para AxManager..."
+          echo "Verificando archivos requeridos para AxManager, KernelSU y Magisk..."
           test -f ax_module/module.prop || { echo "Falta module.prop"; exit 1; }
           test -f ax_module/customize.sh || { echo "Falta customize.sh"; exit 1; }
           test -f ax_module/service.sh || { echo "Falta service.sh"; exit 1; }
           test -f ax_module/webroot/index.html || { echo "Falta webroot/index.html"; exit 1; }
+          test -f ax_module/scripts/fps_boost.sh || { echo "Falta fps_boost.sh"; exit 1; }
           test -f ax_module/scripts/touch_boost.sh || { echo "Falta touch_boost.sh"; exit 1; }
+          test -f ax_module/META-INF/com/google/android/update-binary || { echo "Falta update-binary"; exit 1; }
           
-          chmod +x ax_module/*.sh ax_module/scripts/*.sh
-          echo "Estructura verificada correctamente."
+          chmod +x ax_module/*.sh ax_module/scripts/*.sh ax_module/META-INF/com/google/android/update-binary
+          echo "Estructura universal verificada correctamente."
 
-      - name: Comprimir paquete ZIP para AX Manager
+      - name: Comprimir paquete ZIP para AX Manager y KernelSU
         run: |
           mkdir -p dist
           # La compresión se realiza desde la raíz de ax_module para que module.prop y customize.sh queden en el root del ZIP
           cd ax_module
-          zip -r ../dist/ax_mali_core_optimizer_${{ github.event.inputs.version_tag || 'v1.0.0' }}.zip ./*
+          zip -r ../dist/ax_mali_core_optimizer_${{ github.event.inputs.version_tag || 'v1.3.0' }}.zip ./*
           cd ..
           echo "ZIP generado con éxito en dist/"
           ls -lh dist/
@@ -60,6 +62,6 @@ jobs:
       - name: Subir artefacto ZIP descargable
         uses: actions/upload-artifact@v4
         with:
-          name: ax_mali_core_optimizer_${{ github.event.inputs.version_tag || 'v1.0.0' }}
+          name: ax_mali_core_optimizer_${{ github.event.inputs.version_tag || 'v1.3.0' }}
           path: dist/*.zip
           retention-days: 30

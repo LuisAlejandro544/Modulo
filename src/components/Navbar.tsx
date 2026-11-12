@@ -1,7 +1,7 @@
 import React from 'react';
-import { Cpu, Layers, FileCode2, BookOpen, Smartphone, DownloadCloud, Sparkles } from 'lucide-react';
+import { Cpu, Layers, FileCode2, BookOpen, Smartphone, DownloadCloud, Zap } from 'lucide-react';
 
-export type ScreenTab = 'home' | 'scripts' | 'arch' | 'deploy';
+export type ScreenTab = 'home' | 'fps' | 'scripts' | 'arch' | 'deploy';
 
 interface NavbarProps {
   activeTab: ScreenTab;
@@ -22,11 +22,11 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenG
             <div>
               <div className="flex items-center gap-2">
                 <span className="font-bold text-base sm:text-lg text-white tracking-tight">AX Mali Core</span>
-                <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-cyan-950 text-cyan-400 border border-cyan-800/60">
-                  v1.0.0
+                <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-cyan-950 text-cyan-400 border border-cyan-800/60 font-mono">
+                  v1.3.0
                 </span>
               </div>
-              <p className="text-xs text-slate-400 hidden sm:block">Módulo para AX Manager • Optimización Táctil & GPU Mali</p>
+              <p className="text-xs text-slate-400 hidden sm:block">Ultra FPS Engine • AxManager • KernelSU • Magisk</p>
             </div>
           </div>
 
@@ -41,7 +41,19 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenG
               }`}
             >
               <Layers className="w-4 h-4" />
-              <span>Inicio (Hello World)</span>
+              <span>Inicio</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('fps')}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                activeTab === 'fps'
+                  ? 'bg-emerald-600 text-white shadow-sm'
+                  : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+              }`}
+            >
+              <Zap className="w-4 h-4 text-amber-300" />
+              <span>Ultra FPS</span>
             </button>
 
             <button
@@ -53,7 +65,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenG
               }`}
             >
               <FileCode2 className="w-4 h-4" />
-              <span>Scripts .sh & Táctil</span>
+              <span>Scripts & Táctil</span>
             </button>
 
             <button
@@ -65,7 +77,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenG
               }`}
             >
               <Smartphone className="w-4 h-4" />
-              <span>Arquitectura 32/64 bit</span>
+              <span>32/64 bit</span>
             </button>
 
             <button
@@ -77,7 +89,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenG
               }`}
             >
               <DownloadCloud className="w-4 h-4" />
-              <span>Empaquetado & WebUI</span>
+              <span>Empaquetado & ZIP</span>
             </button>
           </nav>
 
@@ -86,7 +98,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenG
             <button
               onClick={onOpenGuide}
               className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-medium transition"
-              title="Ver guía de instalación en AxManager"
+              title="Ver guía de instalación en AxManager o KernelSU"
             >
               <BookOpen className="w-4 h-4 text-cyan-400" />
               <span className="hidden sm:inline">Guía Móvil</span>
@@ -94,11 +106,11 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenG
           </div>
         </div>
 
-        {/* Barra de pestañas móvil */}
-        <div className="flex md:hidden items-center justify-around py-2 border-t border-slate-800/80 gap-1 overflow-x-auto">
+        {/* Barra de pestañas móvil con scroll horizontal */}
+        <div className="flex md:hidden items-center justify-between py-2 border-t border-slate-800/80 gap-1 overflow-x-auto">
           <button
             onClick={() => setActiveTab('home')}
-            className={`flex flex-col items-center py-1 px-2.5 rounded-lg text-[11px] font-medium transition ${
+            className={`flex flex-col items-center py-1 px-2 rounded-lg text-[10px] font-medium transition shrink-0 ${
               activeTab === 'home' ? 'text-cyan-400 font-semibold' : 'text-slate-400'
             }`}
           >
@@ -106,17 +118,26 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenG
             <span>Inicio</span>
           </button>
           <button
+            onClick={() => setActiveTab('fps')}
+            className={`flex flex-col items-center py-1 px-2 rounded-lg text-[10px] font-medium transition shrink-0 ${
+              activeTab === 'fps' ? 'text-emerald-400 font-semibold' : 'text-slate-400'
+            }`}
+          >
+            <Zap className="w-4 h-4 mb-0.5 text-amber-300" />
+            <span>Ultra FPS</span>
+          </button>
+          <button
             onClick={() => setActiveTab('scripts')}
-            className={`flex flex-col items-center py-1 px-2.5 rounded-lg text-[11px] font-medium transition ${
+            className={`flex flex-col items-center py-1 px-2 rounded-lg text-[10px] font-medium transition shrink-0 ${
               activeTab === 'scripts' ? 'text-cyan-400 font-semibold' : 'text-slate-400'
             }`}
           >
             <FileCode2 className="w-4 h-4 mb-0.5" />
-            <span>Scripts .sh</span>
+            <span>Scripts</span>
           </button>
           <button
             onClick={() => setActiveTab('arch')}
-            className={`flex flex-col items-center py-1 px-2.5 rounded-lg text-[11px] font-medium transition ${
+            className={`flex flex-col items-center py-1 px-2 rounded-lg text-[10px] font-medium transition shrink-0 ${
               activeTab === 'arch' ? 'text-cyan-400 font-semibold' : 'text-slate-400'
             }`}
           >
@@ -125,12 +146,12 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenG
           </button>
           <button
             onClick={() => setActiveTab('deploy')}
-            className={`flex flex-col items-center py-1 px-2.5 rounded-lg text-[11px] font-medium transition ${
+            className={`flex flex-col items-center py-1 px-2 rounded-lg text-[10px] font-medium transition shrink-0 ${
               activeTab === 'deploy' ? 'text-cyan-400 font-semibold' : 'text-slate-400'
             }`}
           >
             <DownloadCloud className="w-4 h-4 mb-0.5" />
-            <span>WebUI & ZIP</span>
+            <span>ZIP & WebUI</span>
           </button>
         </div>
       </div>

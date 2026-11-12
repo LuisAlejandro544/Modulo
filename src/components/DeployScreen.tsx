@@ -107,19 +107,23 @@ export const DeployScreen: React.FC = () => {
         </h3>
 
         <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 font-mono text-xs text-slate-300 leading-relaxed overflow-x-auto">
-          <div>ax_mali_core_optimizer.zip</div>
-          <div className="text-slate-400 pl-4">├── <span className="text-cyan-400 font-bold">module.prop</span> <span className="text-slate-600">// Metadatos v1.2 y axeronPlugin=1000</span></div>
-          <div className="text-slate-400 pl-4">├── <span className="text-cyan-400 font-bold">customize.sh</span> <span className="text-slate-600">// Asignación de permisos +x y validación</span></div>
-          <div className="text-slate-400 pl-4">├── <span className="text-cyan-400 font-bold">service.sh</span> <span className="text-slate-600">// Servicio BusyBox en arranque</span></div>
-          <div className="text-slate-400 pl-4">├── <span className="text-cyan-400 font-bold">uninstall.sh</span> <span className="text-slate-600">// Limpieza de archivos temporales</span></div>
+          <div>ax_mali_core_optimizer_v1.3.0.zip</div>
+          <div className="text-slate-400 pl-4">├── <span className="text-cyan-400 font-bold">module.prop</span> <span className="text-slate-600">// Línea 1 id= limpia (v1.3.0, axeronPlugin=30000)</span></div>
+          <div className="text-slate-400 pl-4">├── <span className="text-cyan-400 font-bold">customize.sh</span> <span className="text-slate-600">// Instalador y permisos 0755</span></div>
+          <div className="text-slate-400 pl-4">├── <span className="text-cyan-400 font-bold">service.sh</span> <span className="text-slate-600">// Auto-arranque de Ultra FPS por defecto</span></div>
+          <div className="text-slate-400 pl-4">├── <span className="text-cyan-400 font-bold">uninstall.sh</span> <span className="text-slate-600">// Reversión completa de ajustes</span></div>
+          <div className="text-slate-400 pl-4">├── META-INF/com/google/android/</div>
+          <div className="text-slate-400 pl-8">├── <span className="text-emerald-400 font-bold">update-binary</span> <span className="text-slate-600">// Puente universal KernelSU / Magisk / APatch</span></div>
+          <div className="text-slate-400 pl-8">└── <span className="text-emerald-400 font-bold">updater-script</span> <span className="text-slate-600">// Descriptor #MAGISK</span></div>
           <div className="text-slate-400 pl-4">├── scripts/</div>
-          <div className="text-slate-400 pl-8">├── <span className="text-emerald-400 font-bold">touch_boost.sh</span> <span className="text-slate-600">// Touch Slop 1px, No Backpressure y Latencia 250ms</span></div>
+          <div className="text-slate-400 pl-8">├── <span className="text-emerald-400 font-bold">fps_boost.sh</span> <span className="text-slate-600">// Latch Unsignaled, Core Affinity, Disable Blur & RAM</span></div>
+          <div className="text-slate-400 pl-8">├── <span className="text-emerald-400 font-bold">touch_boost.sh</span> <span className="text-slate-600">// Touch Slop 1px & Zero Backpressure</span></div>
           <div className="text-slate-400 pl-8">├── <span className="text-cyan-300">mali_common.sh</span> <span className="text-slate-600">// Detección 32/64 bits y GPU Mali</span></div>
           <div className="text-slate-400 pl-8">├── <span className="text-cyan-300">detect_gpu.sh</span> <span className="text-slate-600">// Diagnóstico en tiempo real</span></div>
           <div className="text-slate-400 pl-8">├── <span className="text-cyan-300">governor_tweak.sh</span> <span className="text-slate-600">// Control de frecuencias DVFS</span></div>
           <div className="text-slate-400 pl-8">└── <span className="text-cyan-300">surface_tweak.sh</span> <span className="text-slate-600">// Modo Batata (25%, 50%, 70%) & Anulación Game Booster</span></div>
           <div className="text-slate-400 pl-4">└── webroot/</div>
-          <div className="text-slate-400 pl-8">└── <span className="text-amber-300 font-bold">index.html</span> <span className="text-slate-600">// Interfaz WebUI interactiva con ksu.exec</span></div>
+          <div className="text-slate-400 pl-8">└── <span className="text-amber-300 font-bold">index.html</span> <span className="text-slate-600">// WebUI nativo con pestañas Ultra FPS, Táctil y Batata</span></div>
         </div>
       </div>
 

@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import { validateScriptSecurity, classifyAbi, MODULE_SCRIPTS } from './moduleData.ts';
 
 test('Seguridad: detecta y prohíbe el uso de propiedades persistentes no permitidas', () => {
@@ -8,6 +9,19 @@ test('Seguridad: detecta y prohíbe el uso de propiedades persistentes no permit
   `;
   const result = validateScriptSecurity(unsafeScript);
   assert.equal(result.isValid, false);
+});
+
+test('Seguridad: valida que fps_boost.sh esté 100% libre de propiedades no permitidas', () => {
+  const fpsScript = MODULE_SCRIPTS.find(s => s.name === 'fps_boost.sh');
+  assert.ok(fpsScript, 'fps_boost.sh debe existir');
+  const result = validateScriptSecurity(fpsScript.codeSnippet);
+  assert.equal(result.isValid, true);
+
+  if (fs.existsSync('ax_module/scripts/fps_boost.sh')) {
+    const fileContent = fs.readFileSync('ax_module/scripts/fps_boost.sh', 'utf-8');
+    const fileResult = validateScriptSecurity(fileContent);
+    assert.equal(fileResult.isValid, true, 'El archivo físico fps_boost.sh no debe contener persist.sys');
+  }
 });
 
 test('Seguridad: valida que touch_boost.sh esté 100% libre de propiedades no permitidas', () => {
@@ -31,9 +45,10 @@ test('Arquitectura: clasifica correctamente 32-bit y 64-bit', () => {
   assert.equal(classifyAbi('desconocido'), 'unknown');
 });
 
-test('Módulo: contiene los 9 archivos completos incluyendo touch_boost.sh', () => {
-  assert.equal(MODULE_SCRIPTS.length, 9);
+test('Módulo: contiene los 10 archivos completos incluyendo fps_boost.sh', () => {
+  assert.equal(MODULE_SCRIPTS.length, 10);
   const names = MODULE_SCRIPTS.map(s => s.name);
+  assert.ok(names.includes('fps_boost.sh'));
   assert.ok(names.includes('touch_boost.sh'));
   assert.ok(names.includes('module.prop'));
   assert.ok(names.includes('customize.sh'));

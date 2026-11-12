@@ -36,12 +36,20 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, onOpenGuide 
 
           <div className="mt-6 flex flex-wrap gap-3">
             <button
-              onClick={() => onNavigate('scripts')}
-              className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-semibold rounded-xl text-xs sm:text-sm shadow-lg shadow-cyan-500/25 transition active:scale-95"
+              onClick={() => onNavigate('fps')}
+              className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-semibold rounded-xl text-xs sm:text-sm shadow-lg shadow-emerald-500/25 transition active:scale-95"
             >
-              <FileCode2 className="w-4 h-4" />
-              <span>Ver Scripts .sh & Lógica Táctil</span>
+              <Zap className="w-4 h-4 text-amber-300" />
+              <span>Explorar Ultra FPS Engine</span>
               <ArrowRight className="w-4 h-4 ml-1" />
+            </button>
+
+            <button
+              onClick={() => onNavigate('scripts')}
+              className="flex items-center gap-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium rounded-xl text-xs sm:text-sm border border-slate-700 transition"
+            >
+              <FileCode2 className="w-4 h-4 text-cyan-400" />
+              <span>Ver Scripts .sh</span>
             </button>
 
             <button

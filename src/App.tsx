@@ -6,6 +6,7 @@
 import React, { useState } from 'react';
 import { Navbar, ScreenTab } from './components/Navbar';
 import { HomeScreen } from './components/HomeScreen';
+import { FpsScreen } from './components/FpsScreen';
 import { ScriptsExplorerScreen } from './components/ScriptsExplorerScreen';
 import { ArchitectureScreen } from './components/ArchitectureScreen';
 import { DeployScreen } from './components/DeployScreen';
@@ -33,6 +34,8 @@ export default function App() {
           />
         )}
 
+        {activeTab === 'fps' && <FpsScreen />}
+
         {activeTab === 'scripts' && <ScriptsExplorerScreen />}
 
         {activeTab === 'arch' && <ArchitectureScreen />}
@@ -43,11 +46,11 @@ export default function App() {
       {/* Pie de página con estado técnico */}
       <footer className="mt-auto border-t border-slate-900 bg-slate-950/80 py-4 text-center text-xs text-slate-500">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span>AX Mali Core Engine • Optimización para AX Manager & Axeron (Android)</span>
+          <span>AX Mali Core Engine • Optimización para AX Manager, KernelSU, APatch & Magisk</span>
           <div className="flex items-center gap-3">
             <span className="text-emerald-400 font-mono">React 19 ✓</span>
-            <span className="text-cyan-400 font-mono">32/64-bit ✓</span>
-            <span className="text-amber-400 font-mono">100% Seguro ✓</span>
+            <span className="text-cyan-400 font-mono">Ultra FPS ✓</span>
+            <span className="text-amber-400 font-mono">32/64-bit ✓</span>
           </div>
         </div>
       </footer>
