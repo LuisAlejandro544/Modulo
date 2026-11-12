@@ -1,5 +1,5 @@
 import React from 'react';
-import { Cpu, ShieldCheck, CheckCircle2, FileCode2, ArrowRight, Zap, DownloadCloud, Sparkles, Sliders, Layers } from 'lucide-react';
+import { Cpu, ShieldCheck, CheckCircle2, FileCode2, ArrowRight, Zap, DownloadCloud, Sparkles, Sliders, Layers, HardDrive, Flame } from 'lucide-react';
 import { ScreenTab } from './Navbar';
 
 interface HomeScreenProps {
@@ -152,7 +152,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, onOpenGuide 
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {/* Card 1: Anti-Stutter RAM */}
           <div
             onClick={() => onNavigate('ram')}
@@ -203,7 +203,57 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, onOpenGuide 
             </div>
           </div>
 
-          {/* Card 3: ANGLE Vulkan */}
+          {/* Card 3: Carga I/O & Pre-Compilación AOT */}
+          <div
+            onClick={() => onNavigate('io')}
+            className="group cursor-pointer bg-slate-900/80 border border-slate-800 hover:border-amber-500/50 p-5 rounded-xl transition flex flex-col justify-between space-y-3"
+          >
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="p-2 rounded-lg bg-amber-950 text-amber-400 border border-amber-800/50">
+                  <HardDrive className="w-4 h-4 text-amber-300" />
+                </span>
+                <span className="text-[11px] font-mono text-amber-400 font-bold">io_aot_tweak.sh</span>
+              </div>
+              <h3 className="font-bold text-white text-sm group-hover:text-amber-400 transition">
+                Carga Flash I/O & AOT Bytecode
+              </h3>
+              <p className="text-xs text-slate-300 mt-1 leading-relaxed">
+                Pre-compilación AOT (speed mode) vía dex2oat para cero pausas JIT, readahead masivo de 1024 KB en UFS y eliminación de iostats.
+              </p>
+            </div>
+            <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs text-amber-400 font-medium">
+              <span>Acelerar Carga & dex2oat</span>
+              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition" />
+            </div>
+          </div>
+
+          {/* Card 4: Thermal Userspace Shield */}
+          <div
+            onClick={() => onNavigate('thermal')}
+            className="group cursor-pointer bg-slate-900/80 border border-slate-800 hover:border-rose-500/50 p-5 rounded-xl transition flex flex-col justify-between space-y-3"
+          >
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="p-2 rounded-lg bg-rose-950 text-rose-400 border border-rose-800/50">
+                  <Flame className="w-4 h-4 text-rose-400" />
+                </span>
+                <span className="text-[11px] font-mono text-rose-400 font-bold">thermal_tweak.sh</span>
+              </div>
+              <h3 className="font-bold text-white text-sm group-hover:text-rose-400 transition">
+                Thermal Userspace Shield & GED
+              </h3>
+              <p className="text-xs text-slate-300 mt-1 leading-relaxed">
+                Neutraliza limitadores de fabricante (Joyose, GOS, Cosa) a los 38°C y amplía el margen DVFS MediaTek al 50%. Hardware trip points 100% seguros.
+              </p>
+            </div>
+            <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs text-rose-400 font-medium">
+              <span>Bypass Joyose & GOS</span>
+              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition" />
+            </div>
+          </div>
+
+          {/* Card 5: ANGLE Vulkan */}
           <div
             onClick={() => onNavigate('angle')}
             className="group cursor-pointer bg-slate-900/80 border border-slate-800 hover:border-purple-500/50 p-5 rounded-xl transition flex flex-col justify-between space-y-3"
@@ -228,7 +278,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate, onOpenGuide 
             </div>
           </div>
 
-          {/* Card 4: GMS Shield */}
+          {/* Card 6: GMS Shield */}
           <div
             onClick={() => onNavigate('gms')}
             className="group cursor-pointer bg-slate-900/80 border border-slate-800 hover:border-indigo-500/50 p-5 rounded-xl transition flex flex-col justify-between space-y-3"

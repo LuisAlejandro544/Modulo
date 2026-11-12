@@ -201,7 +201,39 @@ export const FpsScreen: React.FC = () => {
           </div>
         </div>
 
-        {/* Pilar 3 */}
+        {/* Pilar 3: SCHED_FIFO RenderThread Real-Time */}
+        <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-5 flex flex-col justify-between">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-lg bg-emerald-950 text-emerald-400 border border-emerald-800/50">
+                  <Zap className="w-4 h-4 text-emerald-400" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm text-white">3. RenderThread en Tiempo Real (SCHED_FIFO)</h3>
+                  <span className="text-[11px] text-emerald-400 font-mono">chrt -f -p 99 $TID & uclamp_min 1024</span>
+                </div>
+              </div>
+              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-800/40">
+                RT Nivel 99
+              </span>
+            </div>
+            <p className="text-xs text-slate-300 leading-relaxed">
+              Escanea dinámicamente <span className="text-emerald-400 font-mono">/proc/$PID/task/</span> identificando hilos críticos de renderizado (<span className="text-cyan-300 font-mono">RenderThread</span>, <span className="text-cyan-300 font-mono">UnityMain</span>, <span className="text-cyan-300 font-mono">UnityGfxDeviceW</span>) y los eleva a la política de tiempo real estricta <span className="text-emerald-400 font-mono">SCHED_FIFO</span> nivel 99. Los comandos de dibujo a la GPU Mali nunca esperan turno de CPU.
+            </p>
+          </div>
+          <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs font-mono text-slate-400">
+            <span>chrt -f -p 99 $TID; echo 1024 &gt; uclamp.min</span>
+            <button
+              onClick={() => handleCopy('chrt -f -p 99 $(pidof com.dts.freefireth)', 'p_rt')}
+              className="text-xs text-cyan-400 hover:text-cyan-300"
+            >
+              {copiedCmd === 'p_rt' ? 'Copiado ✓' : 'Copiar'}
+            </button>
+          </div>
+        </div>
+
+        {/* Pilar 4: Supresión de Desenfoque ROM */}
         <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-5 flex flex-col justify-between">
           <div className="space-y-3">
             <div className="flex items-center justify-between">
@@ -210,7 +242,7 @@ export const FpsScreen: React.FC = () => {
                   <Flame className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-sm text-white">3. Supresión de Desenfoque ROM</h3>
+                  <h3 className="font-bold text-sm text-white">4. Supresión de Desenfoque ROM</h3>
                   <span className="text-[11px] text-indigo-400 font-mono">debug.hwui.disable_draw_blur = 1</span>
                 </div>
               </div>
@@ -237,8 +269,8 @@ export const FpsScreen: React.FC = () => {
           </div>
         </div>
 
-        {/* Pilar 4 */}
-        <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-5 flex flex-col justify-between">
+        {/* Pilar 5: Limpiador RAM & Zero LMKD */}
+        <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-5 flex flex-col justify-between lg:col-span-2">
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -246,7 +278,7 @@ export const FpsScreen: React.FC = () => {
                   <Trash2 className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-sm text-white">4. Limpiador RAM & Zero LMKD</h3>
+                  <h3 className="font-bold text-sm text-white">5. Limpiador RAM & Zero LMKD</h3>
                   <span className="text-[11px] text-amber-400 font-mono">drop_caches & compact_memory 0</span>
                 </div>
               </div>

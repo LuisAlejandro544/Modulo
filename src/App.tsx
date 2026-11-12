@@ -11,6 +11,8 @@ import { RamScreen } from './components/RamScreen';
 import { GpuGovernorScreen } from './components/GpuGovernorScreen';
 import { AngleScreen } from './components/AngleScreen';
 import { GmsShieldScreen } from './components/GmsShieldScreen';
+import { IoAotScreen } from './components/IoAotScreen';
+import { ThermalScreen } from './components/ThermalScreen';
 import { ScriptsExplorerScreen } from './components/ScriptsExplorerScreen';
 import { ArchitectureScreen } from './components/ArchitectureScreen';
 import { DeployScreen } from './components/DeployScreen';
@@ -47,6 +49,10 @@ export default function App() {
         {activeTab === 'angle' && <AngleScreen />}
 
         {activeTab === 'gms' && <GmsShieldScreen />}
+
+        {activeTab === 'io' && <IoAotScreen />}
+
+        {activeTab === 'thermal' && <ThermalScreen />}
 
         {activeTab === 'scripts' && <ScriptsExplorerScreen />}
 

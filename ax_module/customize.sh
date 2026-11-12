@@ -33,6 +33,8 @@ if [ -d "$MODPATH/scripts" ]; then
     ui_print "  ✓ Piso Frecuencia GPU (Floor Frequency 400-500 MHz)"
     ui_print "  ✓ GMS Shield (Escudo Anti-Basura Google Play)"
     ui_print "  ✓ Capa ANGLE Vulkan 1.1+ (OpenGL ES sobre Vulkan)"
+    ui_print "  ✓ I/O Flash Readahead (1024 KB) & AOT Speed Mode (dex2oat)"
+    ui_print "  ✓ Thermal Userspace Shield (Anti-Throttling & MTK GED Margin)"
 fi
 
 chmod 0755 "$MODPATH/service.sh" 2>/dev/null

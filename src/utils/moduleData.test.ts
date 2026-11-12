@@ -107,8 +107,44 @@ test('Arquitectura: clasifica correctamente 32-bit y 64-bit', () => {
   assert.equal(classifyAbi('desconocido'), 'unknown');
 });
 
-test('Módulo: contiene los 13 archivos modulares completos', () => {
-  assert.equal(MODULE_SCRIPTS.length, 13);
+test('Seguridad: valida que fps_boost.sh incluya SCHED_FIFO para RenderThread', () => {
+  if (fs.existsSync('ax_module/scripts/fps_boost.sh')) {
+    const fileContent = fs.readFileSync('ax_module/scripts/fps_boost.sh', 'utf-8');
+    assert.ok(fileContent.includes('RenderThread'), 'fps_boost.sh debe priorizar RenderThread');
+    assert.ok(fileContent.includes('chrt -f -p 99'), 'fps_boost.sh debe usar SCHED_FIFO 99');
+  }
+});
+
+test('Seguridad: valida que io_aot_tweak.sh esté 100% libre de persist.sys y soporte AOT e I/O Readahead', () => {
+  const ioScript = MODULE_SCRIPTS.find(s => s.name === 'io_aot_tweak.sh');
+  assert.ok(ioScript, 'io_aot_tweak.sh debe existir en MODULE_SCRIPTS');
+  assert.equal(validateScriptSecurity(ioScript.codeSnippet).isValid, true);
+
+  if (fs.existsSync('ax_module/scripts/io_aot_tweak.sh')) {
+    const fileContent = fs.readFileSync('ax_module/scripts/io_aot_tweak.sh', 'utf-8');
+    assert.equal(validateScriptSecurity(fileContent).isValid, true, 'io_aot_tweak.sh no debe contener persist.sys');
+    assert.ok(fileContent.includes('read_ahead_kb'), 'io_aot_tweak.sh debe configurar read_ahead_kb');
+    assert.ok(fileContent.includes('iostats'), 'io_aot_tweak.sh debe desactivar iostats');
+    assert.ok(fileContent.includes('cmd package compile -m'), 'io_aot_tweak.sh debe ejecutar compilación AOT');
+  }
+});
+
+test('Seguridad: valida que thermal_tweak.sh esté 100% libre de persist.sys y anule limitadores de fabricante', () => {
+  const thermalScript = MODULE_SCRIPTS.find(s => s.name === 'thermal_tweak.sh');
+  assert.ok(thermalScript, 'thermal_tweak.sh debe existir en MODULE_SCRIPTS');
+  assert.equal(validateScriptSecurity(thermalScript.codeSnippet).isValid, true);
+
+  if (fs.existsSync('ax_module/scripts/thermal_tweak.sh')) {
+    const fileContent = fs.readFileSync('ax_module/scripts/thermal_tweak.sh', 'utf-8');
+    assert.equal(validateScriptSecurity(fileContent).isValid, true, 'thermal_tweak.sh no debe contener persist.sys');
+    assert.ok(fileContent.includes('com.xiaomi.joyose'), 'thermal_tweak.sh debe apuntar a Joyose');
+    assert.ok(fileContent.includes('dvfs_margin_value'), 'thermal_tweak.sh debe calibrar dvfs_margin_value');
+    assert.ok(fileContent.includes('gpu_idle'), 'thermal_tweak.sh debe calibrar gpu_idle');
+  }
+});
+
+test('Módulo: contiene los 15 archivos modulares completos', () => {
+  assert.equal(MODULE_SCRIPTS.length, 15);
   const names = MODULE_SCRIPTS.map(s => s.name);
   assert.ok(names.includes('fps_boost.sh'));
   assert.ok(names.includes('touch_boost.sh'));
@@ -121,6 +157,8 @@ test('Módulo: contiene los 13 archivos modulares completos', () => {
   assert.ok(names.includes('ram_tweak.sh'));
   assert.ok(names.includes('gms_shield.sh'));
   assert.ok(names.includes('angle_tweak.sh'));
+  assert.ok(names.includes('io_aot_tweak.sh'));
+  assert.ok(names.includes('thermal_tweak.sh'));
   assert.ok(names.includes('surface_tweak.sh'));
   assert.ok(names.includes('uninstall.sh'));
 });

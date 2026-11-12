@@ -120,12 +120,15 @@ enable_fps_boost() {
     log_info "Pilar 2: HWUI DrawBlur y profiling desactivados (GPU Mali liberada)."
 
     # --------------------------------------------------------------------------
-    # PILAR 3: Asignación Prioritaria de Hilos a Núcleos Potentes (Core Affinity)
-    # Eleva los hilos del juego a prioridad de tiempo real (-20) y los fuerza
-    # al cgroup top-app para que no se ejecuten en núcleos Cortex-A55 lentos.
+    # PILAR 3: Priorización en Tiempo Real del RenderThread (SCHED_FIFO & chrt -f)
+    # Eleva los hilos del juego y especialmente el RenderThread a tiempo real (FIFO 99)
+    # y los fuerza al cgroup top-app para que no se ejecuten en núcleos Cortex-A55 lentos.
     # --------------------------------------------------------------------------
     GAME_PIDS=$(get_target_pids "$TARGET_PKG")
     BOOSTED_COUNT=0
+    RT_COUNT=0
+    RT_THREADS_FILE="/data/local/tmp/mali_fps_rt_threads.pids"
+    > "$RT_THREADS_FILE"
 
     if [ -n "$GAME_PIDS" ]; then
         for PID in $GAME_PIDS; do
@@ -142,9 +145,38 @@ enable_fps_boost() {
                 echo -900 > "/proc/$PID/oom_score_adj" 2>/dev/null
             fi
 
+            # Buscar y priorizar hilos RenderThread, UnityMain y Mali GPU drivers en tiempo real
+            if [ -d "/proc/$PID/task" ]; then
+                for TASK_DIR in /proc/$PID/task/*; do
+                    TID=$(basename "$TASK_DIR")
+                    [ -z "$TID" ] && continue
+                    COMM=$(cat "$TASK_DIR/comm" 2>/dev/null)
+                    
+                    case "$COMM" in
+                        *RenderThread*|*UnityMain*|*UnityGfxDevice*|*MainThread*|*GameThread*|*RHIThread*|*mali-*)
+                            # Prioridad en Tiempo Real SCHED_FIFO (First-In, First-Out, nivel 99)
+                            if chrt -f -p 99 "$TID" 2>/dev/null; then
+                                echo "$TID" >> "$RT_THREADS_FILE"
+                                RT_COUNT=$((RT_COUNT + 1))
+                            elif chrt -r -p 99 "$TID" 2>/dev/null; then
+                                echo "$TID" >> "$RT_THREADS_FILE"
+                                RT_COUNT=$((RT_COUNT + 1))
+                            else
+                                renice -n -20 -p "$TID" 2>/dev/null
+                            fi
+
+                            # Fijar utilización EAS / uclamp máximo si el kernel lo soporta
+                            [ -w "$TASK_DIR/sched_uclamp_min" ] && echo 1024 > "$TASK_DIR/sched_uclamp_min" 2>/dev/null
+                            [ -w "$TASK_DIR/sched_boost" ] && echo 1 > "$TASK_DIR/sched_boost" 2>/dev/null
+                            [ -w /dev/cpuset/top-app/tasks ] && echo "$TID" > /dev/cpuset/top-app/tasks 2>/dev/null
+                            ;;
+                    esac
+                done
+            fi
+
             BOOSTED_COUNT=$((BOOSTED_COUNT + 1))
         done
-        log_info "Pilar 3: Afinidad de CPU y Renice -20 asignados a $BOOSTED_COUNT procesos de juego."
+        log_info "Pilar 3: $BOOSTED_COUNT procesos de juego priorizados ($RT_COUNT hilos RenderThread promovidos a SCHED_FIFO)."
     else
         log_info "Pilar 3: Configurado entorno top-app para priorizar el próximo juego en ejecución."
     fi
@@ -164,12 +196,14 @@ enable_fps_boost() {
 STATUS=1
 LATCH_UNSIGNALED=1
 CPU_AFFINITY=RENICE_MINUS_20
+SCHED_FIFO_RENDERTHREAD=ACTIVE
+RT_THREADS_COUNT=$RT_COUNT
 DISABLE_DRAW_BLUR=1
 RAM_PURGE=ACTIVE
 TIMESTAMP=$(date +"%Y-%m-%d %H:%M:%S")
 EOF
 
-    echo "SUCCESS: Ultra FPS Engine activado con éxito (4/4 pilares operativos)."
+    echo "SUCCESS: Ultra FPS Engine activado con éxito (4/4 pilares operativos con SCHED_FIFO RenderThread)."
 }
 
 # ==============================================================================
@@ -196,8 +230,17 @@ disable_fps_boost() {
     setprop debug.hwui.profile "" 2>/dev/null
     setprop debug.atrace.tags.enableflags "" 2>/dev/null
 
+    # Restaurar hilos SCHED_FIFO a SCHED_OTHER estándar
+    RT_THREADS_FILE="/data/local/tmp/mali_fps_rt_threads.pids"
+    if [ -f "$RT_THREADS_FILE" ]; then
+        for TID in $(cat "$RT_THREADS_FILE" 2>/dev/null); do
+            chrt -o -p 0 "$TID" 2>/dev/null
+        done
+        rm -f "$RT_THREADS_FILE" 2>/dev/null
+    fi
+
     echo "0" > "$STATUS_FILE"
-    echo "SUCCESS: Ultra FPS Engine desactivado. Parámetros de sistema restaurados."
+    echo "SUCCESS: Ultra FPS Engine desactivado. Parámetros de sistema y scheduler restaurados."
 }
 
 # ==============================================================================
@@ -219,12 +262,17 @@ get_status() {
     fi
 
     LATCH=$(getprop debug.sf.latch_unsignaled)
-    BLUR=$(getprop debug.hwui.disable_draw_blur)
+    RT_COUNT=0
+    if [ -f "/data/local/tmp/mali_fps_rt_threads.pids" ]; then
+        RT_COUNT=$(wc -l < "/data/local/tmp/mali_fps_rt_threads.pids" 2>/dev/null)
+    fi
 
     echo "FPS_BOOST_STATUS=${STATUS:-0}"
     echo "LATCH_UNSIGNALED=${LATCH:-0}"
     echo "DISABLE_DRAW_BLUR=${BLUR:-0}"
     echo "CPU_PRIORITY=RENICE_MINUS_20"
+    echo "SCHED_FIFO_RENDERTHREAD=ACTIVE"
+    echo "RT_THREADS_COUNT=${RT_COUNT:-0}"
     echo "RAM_PURGE=ENABLED"
     echo "SECURITY_RULE=CERO_PERSIST_SYS"
 }

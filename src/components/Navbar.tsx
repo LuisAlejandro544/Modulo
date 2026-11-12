@@ -1,7 +1,7 @@
 import React from 'react';
-import { Cpu, Layers, FileCode2, BookOpen, Smartphone, DownloadCloud, Zap, ShieldAlert, Sliders } from 'lucide-react';
+import { Cpu, Layers, FileCode2, BookOpen, Smartphone, DownloadCloud, Zap, ShieldAlert, Sliders, HardDrive, Flame } from 'lucide-react';
 
-export type ScreenTab = 'home' | 'fps' | 'ram' | 'governor' | 'angle' | 'gms' | 'scripts' | 'arch' | 'deploy';
+export type ScreenTab = 'home' | 'fps' | 'ram' | 'governor' | 'angle' | 'gms' | 'io' | 'thermal' | 'scripts' | 'arch' | 'deploy';
 
 interface NavbarProps {
   activeTab: ScreenTab;
@@ -23,15 +23,15 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenG
               <div className="flex items-center gap-2">
                 <span className="font-bold text-base sm:text-lg text-white tracking-tight">AX Mali Core</span>
                 <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-cyan-950 text-cyan-400 border border-cyan-800/60 font-mono">
-                  v1.3.0
+                  v1.4.0
                 </span>
               </div>
-              <p className="text-xs text-slate-400 hidden sm:block">Ultra FPS • Anti-Stutter RAM • Floor GPU • ANGLE Vulkan • GMS Shield</p>
+              <p className="text-xs text-slate-400 hidden sm:block">Ultra FPS • Anti-Stutter RAM • Floor GPU • ANGLE Vulkan • I/O AOT • Thermal Shield</p>
             </div>
           </div>
 
           {/* Navegación por pestañas (Desktop & Tablet) */}
-          <nav className="hidden md:flex items-center gap-1 bg-slate-950/60 p-1.5 rounded-xl border border-slate-800">
+          <nav className="hidden md:flex items-center gap-1 bg-slate-950/60 p-1.5 rounded-xl border border-slate-800 overflow-x-auto">
             <button
               onClick={() => setActiveTab('home')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
@@ -65,7 +65,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenG
               }`}
             >
               <Sliders className="w-4 h-4 text-emerald-400" />
-              <span>RAM Anti-Stutter</span>
+              <span>RAM</span>
             </button>
 
             <button
@@ -89,7 +89,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenG
               }`}
             >
               <Layers className="w-4 h-4 text-purple-400" />
-              <span>ANGLE Vulkan</span>
+              <span>ANGLE</span>
             </button>
 
             <button
@@ -102,6 +102,30 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenG
             >
               <ShieldAlert className="w-4 h-4 text-indigo-400" />
               <span>GMS Shield</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('io')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                activeTab === 'io'
+                  ? 'bg-amber-600 text-white shadow-sm'
+                  : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+              }`}
+            >
+              <HardDrive className="w-4 h-4 text-amber-300" />
+              <span>Carga & AOT</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('thermal')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                activeTab === 'thermal'
+                  ? 'bg-rose-600 text-white shadow-sm'
+                  : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
+              }`}
+            >
+              <Flame className="w-4 h-4 text-rose-400" />
+              <span>Thermal Shield</span>
             </button>
 
             <button
@@ -209,6 +233,24 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenG
           >
             <ShieldAlert className="w-4 h-4 mb-0.5 text-indigo-400" />
             <span>GMS Shield</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('io')}
+            className={`flex flex-col items-center py-1 px-2.5 rounded-lg text-[10px] font-medium transition shrink-0 ${
+              activeTab === 'io' ? 'text-amber-400 font-semibold' : 'text-slate-400'
+            }`}
+          >
+            <HardDrive className="w-4 h-4 mb-0.5 text-amber-300" />
+            <span>Carga I/O</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('thermal')}
+            className={`flex flex-col items-center py-1 px-2.5 rounded-lg text-[10px] font-medium transition shrink-0 ${
+              activeTab === 'thermal' ? 'text-rose-400 font-semibold' : 'text-slate-400'
+            }`}
+          >
+            <Flame className="w-4 h-4 mb-0.5 text-rose-400" />
+            <span>Thermal</span>
           </button>
           <button
             onClick={() => setActiveTab('scripts')}

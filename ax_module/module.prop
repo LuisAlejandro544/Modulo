@@ -1,8 +1,8 @@
 id=ax_mali_core_optimizer
 name=Mali GPU Core Engine
-version=v1.3.0
-versionCode=130
+version=v1.4.0
+versionCode=140
 author=AX Mobile Community
-description=Control de GPU Mali: Ultra FPS Engine, Anti-Stutter RAM, Piso GPU, GMS Shield, ANGLE (Vulkan 1.1+) y Modo Batata.
+description=Control Mali GPU: Ultra FPS (SCHED_FIFO), Anti-Stutter RAM, Piso GPU, Carga Rápida I/O & AOT Speed, Thermal Shield y ANGLE.
 axeronPlugin=30000
 minApi=26

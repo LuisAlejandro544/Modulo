@@ -15,10 +15,10 @@ export async function generateModuleZipBlob(): Promise<Blob> {
     'module.prop',
     `id=ax_mali_core_optimizer
 name=Mali GPU Core Engine
-version=v1.3.0
-versionCode=130
+version=v1.4.0
+versionCode=140
 author=AX Mobile Community
-description=Control de GPU Mali: Ultra FPS Engine, Anti-Stutter RAM & ZRAM, Piso de Frecuencia GPU (Floor 400-500 MHz), GMS Shield y Modo Batata (Android 12+).
+description=Control Mali GPU: Ultra FPS (SCHED_FIFO), Anti-Stutter RAM, Piso GPU, Carga Rápida I/O & AOT Speed, Thermal Shield y ANGLE.
 axeronPlugin=30000
 minApi=26
 `,
@@ -30,7 +30,7 @@ minApi=26
     'customize.sh',
     `#!/system/bin/sh
 ui_print "***************************************************"
-ui_print "*        AX MALI GPU CORE ENGINE v1.3.0           *"
+ui_print "*        AX MALI GPU CORE ENGINE v1.4.0           *"
 ui_print "*   KernelSU • APatch • Magisk • AX Manager       *"
 ui_print "***************************************************"
 
@@ -40,12 +40,14 @@ if [ -d "\$MODPATH/scripts" ]; then
     ui_print "- Asignando permisos de ejecución a scripts internos..."
     chmod -R 0755 "\$MODPATH/scripts"
     ui_print "  ✓ Touch Boost (Touch Slop 1px & Zero Backpressure)"
-    ui_print "  ✓ Ultra FPS Engine (Latch Unsignaled & CPU Affinity)"
+    ui_print "  ✓ Ultra FPS Engine (Latch Unsignaled & SCHED_FIFO Affinity)"
     ui_print "  ✓ Modo Batata (Anulación de Game Booster)"
     ui_print "  ✓ Anti-Stutter RAM & ZRAM (Swappiness & Zero Drops)"
     ui_print "  ✓ Piso Frecuencia GPU (Floor Frequency 400-500 MHz)"
     ui_print "  ✓ GMS Shield (Escudo Anti-Basura Google Play)"
     ui_print "  ✓ Capa ANGLE Vulkan 1.1+ (OpenGL ES sobre Vulkan)"
+    ui_print "  ✓ I/O Flash Readahead (1024 KB) & AOT Speed Mode (dex2oat)"
+    ui_print "  ✓ Thermal Userspace Shield (Anti-Throttling & MTK GED Margin)"
 fi
 
 chmod 0755 "\$MODPATH/service.sh" 2>/dev/null
@@ -137,14 +139,26 @@ if [ -f "\$MODDIR/scripts/angle_tweak.sh" ]; then
     sh "\$MODDIR/scripts/angle_tweak.sh" disable 2>/dev/null
 fi
 
+if [ -f "\$MODDIR/scripts/io_aot_tweak.sh" ]; then
+    sh "\$MODDIR/scripts/io_aot_tweak.sh" disable 2>/dev/null
+fi
+
+if [ -f "\$MODDIR/scripts/thermal_tweak.sh" ]; then
+    sh "\$MODDIR/scripts/thermal_tweak.sh" disable 2>/dev/null
+fi
+
 rm -f /data/local/tmp/ax_mali_optimizer.log
 rm -f /data/local/tmp/mali_touch_*.state 2>/dev/null
 rm -f /data/local/tmp/mali_fps_*.state 2>/dev/null
+rm -f /data/local/tmp/mali_fps_rt_threads.pids 2>/dev/null
 rm -f /data/local/tmp/mali_potato_status.state 2>/dev/null
 rm -f /data/local/tmp/mali_ram_*.state 2>/dev/null
 rm -f /data/local/tmp/mali_governor_*.state 2>/dev/null
 rm -f /data/local/tmp/mali_gms_*.state 2>/dev/null
 rm -f /data/local/tmp/mali_angle_*.state 2>/dev/null
+rm -f /data/local/tmp/mali_io_*.state 2>/dev/null
+rm -f /data/local/tmp/mali_thermal_*.state 2>/dev/null
+rm -f /data/local/tmp/mali_thermal_frozen.* 2>/dev/null
 rm -rf /data/local/tmp/ax_module_tmp 2>/dev/null
 
 echo "Módulo AX Mali Core Engine desinstalado y sistema restaurado limpiamente."
@@ -286,8 +300,12 @@ enable_fps_boost() {
     setprop debug.hwui.profile false 2>/dev/null
     setprop debug.atrace.tags.enableflags 0 2>/dev/null
 
-    # Pilar 3: Afinidad CPU y Renice -20
+    # Pilar 3: Priorización en Tiempo Real del RenderThread (SCHED_FIFO & chrt -f)
     GAME_PIDS=\$(get_target_pids "\$TARGET_PKG")
+    RT_COUNT=0
+    RT_THREADS_FILE="/data/local/tmp/mali_fps_rt_threads.pids"
+    > "\$RT_THREADS_FILE"
+
     if [ -n "\$GAME_PIDS" ]; then
         for PID in \$GAME_PIDS; do
             renice -n -20 -p "\$PID" 2>/dev/null
@@ -296,6 +314,26 @@ enable_fps_boost() {
             fi
             if [ -f "/proc/\$PID/oom_score_adj" ]; then
                 echo -900 > "/proc/\$PID/oom_score_adj" 2>/dev/null
+            fi
+
+            if [ -d "/proc/\$PID/task" ]; then
+                for TASK_DIR in /proc/\$PID/task/*; do
+                    TID=\$(basename "\$TASK_DIR")
+                    [ -z "\$TID" ] && continue
+                    COMM=\$(cat "\$TASK_DIR/comm" 2>/dev/null)
+                    case "\$COMM" in
+                        *RenderThread*|*UnityMain*|*UnityGfxDevice*|*MainThread*|*GameThread*|*RHIThread*|*mali-*)
+                            if chrt -f -p 99 "\$TID" 2>/dev/null; then
+                                echo "\$TID" >> "\$RT_THREADS_FILE"
+                                RT_COUNT=\$((RT_COUNT + 1))
+                            else
+                                renice -n -20 -p "\$TID" 2>/dev/null
+                            fi
+                            [ -w "\$TASK_DIR/sched_uclamp_min" ] && echo 1024 > "\$TASK_DIR/sched_uclamp_min" 2>/dev/null
+                            [ -w /dev/cpuset/top-app/tasks ] && echo "\$TID" > /dev/cpuset/top-app/tasks 2>/dev/null
+                            ;;
+                    esac
+                done
             fi
         done
     fi
@@ -309,12 +347,14 @@ enable_fps_boost() {
 STATUS=1
 LATCH_UNSIGNALED=1
 CPU_AFFINITY=RENICE_MINUS_20
+SCHED_FIFO_RENDERTHREAD=ACTIVE
+RT_THREADS_COUNT=\$RT_COUNT
 DISABLE_DRAW_BLUR=1
 RAM_PURGE=ACTIVE
 TIMESTAMP=\$(date +"%Y-%m-%d %H:%M:%S")
 EOF
 
-    echo "SUCCESS: Ultra FPS Engine activado con éxito (4/4 pilares operativos)."
+    echo "SUCCESS: Ultra FPS Engine activado con éxito (4/4 pilares operativos con SCHED_FIFO RenderThread)."
 }
 
 disable_fps_boost() {
@@ -331,6 +371,15 @@ disable_fps_boost() {
         setprop debug.hwui.disable_draw_blur "" 2>/dev/null
         setprop ro.surface_flinger.supports_background_blur "" 2>/dev/null
     fi
+
+    RT_THREADS_FILE="/data/local/tmp/mali_fps_rt_threads.pids"
+    if [ -f "\$RT_THREADS_FILE" ]; then
+        for TID in \$(cat "\$RT_THREADS_FILE" 2>/dev/null); do
+            chrt -o -p 0 "\$TID" 2>/dev/null
+        done
+        rm -f "\$RT_THREADS_FILE" 2>/dev/null
+    fi
+
     echo "0" > "\$STATUS_FILE"
     echo "SUCCESS: Ultra FPS Engine desactivado. Parámetros restaurados."
 }
@@ -1424,6 +1473,277 @@ esac
 `,
       { unixPermissions: '755' }
     );
+
+    // io_aot_tweak.sh (I/O Readahead 1024 KB & AOT Speed Mode dex2oat)
+    scriptsFolder.file(
+      'io_aot_tweak.sh',
+      `#!/system/bin/sh
+SCRIPT_DIR=\$(dirname "\$0")
+BACKUP_STATE="/data/local/tmp/mali_io_backup.state"
+STATUS_FILE="/data/local/tmp/mali_io_status.state"
+
+if [ -f "\$SCRIPT_DIR/mali_common.sh" ]; then
+    . "\$SCRIPT_DIR/mali_common.sh"
+else
+    log_info() { echo "[INFO] \$1"; }
+    log_warn() { echo "[AVISO] \$1"; }
+    log_error() { echo "[ERROR] \$1"; }
+fi
+
+resolve_target_pkg() {
+    INPUT_PKG="\$1"
+    if [ -n "\$INPUT_PKG" ] && [ "\$INPUT_PKG" != "auto" ]; then
+        echo "\$INPUT_PKG"
+        return
+    fi
+    for PKG in com.dts.freefireth com.dts.freefiremax com.tencent.ig com.activision.callofduty.shooter com.netease.bloodstrike com.roblox.client com.miHoYo.GenshinImpact; do
+        if pm path "\$PKG" >/dev/null 2>&1; then
+            echo "\$PKG"
+            return
+        fi
+    done
+    echo "com.dts.freefireth"
+}
+
+backup_io_settings() {
+    if [ ! -f "\$BACKUP_STATE" ]; then
+        > "\$BACKUP_STATE"
+        for dev in /sys/block/*/queue; do
+            [ ! -d "\$dev" ] && continue
+            B_DEV=\$(echo "\$dev" | cut -d/ -f4)
+            case "\$B_DEV" in loop*|ram*|zram*) continue ;; esac
+            CUR_RA=""
+            CUR_IO=""
+            [ -f "\$dev/read_ahead_kb" ] && CUR_RA=\$(cat "\$dev/read_ahead_kb" 2>/dev/null)
+            [ -f "\$dev/iostats" ] && CUR_IO=\$(cat "\$dev/iostats" 2>/dev/null)
+            echo "DEV_\${B_DEV}_RA=\${CUR_RA:-128}" >> "\$BACKUP_STATE"
+            echo "DEV_\${B_DEV}_IO=\${CUR_IO:-1}" >> "\$BACKUP_STATE"
+        done
+        echo "TIMESTAMP=\$(date +"%Y-%m-%d %H:%M:%S")" >> "\$BACKUP_STATE"
+    fi
+}
+
+enable_io_boost() {
+    RA_KB="\${1:-1024}"
+    backup_io_settings
+    MODIFIED_QUEUES=0
+    for dev in /sys/block/*/queue; do
+        [ ! -d "\$dev" ] && continue
+        B_DEV=\$(echo "\$dev" | cut -d/ -f4)
+        case "\$B_DEV" in loop*|ram*|zram*) continue ;; esac
+        [ -w "\$dev/read_ahead_kb" ] && echo "\$RA_KB" > "\$dev/read_ahead_kb" 2>/dev/null
+        [ -w "\$dev/iostats" ] && echo 0 > "\$dev/iostats" 2>/dev/null
+        [ -w "\$dev/nr_requests" ] && echo 512 > "\$dev/nr_requests" 2>/dev/null
+        MODIFIED_QUEUES=\$((MODIFIED_QUEUES + 1))
+    done
+
+    cat <<EOF > "\$STATUS_FILE"
+STATUS=1
+READAHEAD_KB=\$RA_KB
+IOSTATS=0
+NR_REQUESTS=512
+QUEUES_COUNT=\$MODIFIED_QUEUES
+TIMESTAMP=\$(date +"%Y-%m-%d %H:%M:%S")
+EOF
+    echo "SUCCESS: Aceleración I/O flash activa (\$MODIFIED_QUEUES colas optimizadas a \${RA_KB} KB sin iostats)."
+}
+
+disable_io_boost() {
+    if [ -f "\$BACKUP_STATE" ]; then
+        for dev in /sys/block/*/queue; do
+            [ ! -d "\$dev" ] && continue
+            B_DEV=\$(echo "\$dev" | cut -d/ -f4)
+            case "\$B_DEV" in loop*|ram*|zram*) continue ;; esac
+            OLD_RA=\$(grep "^DEV_\${B_DEV}_RA=" "\$BACKUP_STATE" 2>/dev/null | cut -d= -f2)
+            OLD_IO=\$(grep "^DEV_\${B_DEV}_IO=" "\$BACKUP_STATE" 2>/dev/null | cut -d= -f2)
+            [ -w "\$dev/read_ahead_kb" ] && echo "\${OLD_RA:-128}" > "\$dev/read_ahead_kb" 2>/dev/null
+            [ -w "\$dev/iostats" ] && echo "\${OLD_IO:-1}" > "\$dev/iostats" 2>/dev/null
+        done
+        rm -f "\$BACKUP_STATE" 2>/dev/null
+    fi
+    rm -f "\$STATUS_FILE" 2>/dev/null
+    echo "SUCCESS: Parámetros I/O restaurados."
+}
+
+compile_aot_speed() {
+    TARGET_PKG="\${1:-auto}"
+    MODE="\${2:-speed}"
+    PKG=\$(resolve_target_pkg "\$TARGET_PKG")
+    if ! pm path "\$PKG" >/dev/null 2>&1; then
+        echo "ERROR_PACKAGE_NOT_FOUND: \$PKG no está instalado."
+        return 1
+    fi
+    cmd package compile -m "\$MODE" -f "\$PKG" 2>&1
+    echo "SUCCESS: \$PKG pre-compilado en Modo \$MODE a código máquina nativo."
+}
+
+reset_aot_compile() {
+    TARGET_PKG="\${1:-auto}"
+    PKG=\$(resolve_target_pkg "\$TARGET_PKG")
+    cmd package compile --reset "\$PKG" 2>/dev/null
+    echo "SUCCESS: Compilación de \$PKG restaurada de fábrica."
+}
+
+audit_io_aot() {
+    echo "=== AUDITORÍA I/O & AOT ==="
+    for dev in /sys/block/mmcblk0/queue /sys/block/sda/queue /sys/block/dm-0/queue; do
+        if [ -d "\$dev" ]; then
+            DEV=\$(echo "\$dev" | cut -d/ -f4)
+            echo "• \$DEV: Readahead \$(cat "\$dev/read_ahead_kb" 2>/dev/null) KB | iostats: \$(cat "\$dev/iostats" 2>/dev/null)"
+        fi
+    done
+}
+
+get_status() {
+    STATUS="0"
+    [ -f "\$STATUS_FILE" ] && STATUS="1"
+    echo "IO_AOT_STATUS=\$STATUS"
+}
+
+ACTION="\${1:-status}"
+case "\$ACTION" in
+    enable|1|on) enable_io_boost "\$2" ;;
+    disable|0|off|restore) disable_io_boost ;;
+    compile|speed) compile_aot_speed "\$2" "\$3" ;;
+    reset) reset_aot_compile "\$2" ;;
+    audit|check) audit_io_aot ;;
+    status) get_status ;;
+    *) echo "Uso: \$0 {enable [kb]|disable|compile [pkg] [speed|speed-profile]|reset [pkg]|audit|status}"; exit 1 ;;
+esac
+`,
+      { unixPermissions: '755' }
+    );
+
+    // thermal_tweak.sh (Thermal Userspace Shield & MTK GED Margin)
+    scriptsFolder.file(
+      'thermal_tweak.sh',
+      `#!/system/bin/sh
+SCRIPT_DIR=\$(dirname "\$0")
+BACKUP_STATE="/data/local/tmp/mali_thermal_backup.state"
+STATUS_FILE="/data/local/tmp/mali_thermal_status.state"
+FROZEN_THERMAL_PIDS="/data/local/tmp/mali_thermal_frozen.pids"
+FROZEN_THERMAL_PKGS="/data/local/tmp/mali_thermal_frozen.pkgs"
+
+THROTTLE_PACKAGES="
+    com.xiaomi.joyose
+    com.samsung.android.game.gos
+    com.samsung.android.thermalguardian
+    com.oplus.cosa
+    com.coloros.oppoguardelf
+    com.oplus.battery
+    com.oplus.games
+    com.transsion.gamebooster
+"
+
+backup_thermal_settings() {
+    if [ ! -f "\$BACKUP_STATE" ]; then
+        ORIG_DVFS_MARGIN=""
+        ORIG_GPU_IDLE=""
+        [ -f /sys/module/ged/parameters/dvfs_margin_value ] && ORIG_DVFS_MARGIN=\$(cat /sys/module/ged/parameters/dvfs_margin_value 2>/dev/null)
+        [ -f /sys/module/ged/parameters/gpu_idle ] && ORIG_GPU_IDLE=\$(cat /sys/module/ged/parameters/gpu_idle 2>/dev/null)
+        cat <<EOF > "\$BACKUP_STATE"
+ORIG_DVFS_MARGIN=\${ORIG_DVFS_MARGIN:-10}
+ORIG_GPU_IDLE=\${ORIG_GPU_IDLE:-1}
+TIMESTAMP=\$(date +"%Y-%m-%d %H:%M:%S")
+EOF
+    fi
+}
+
+enable_thermal_shield() {
+    backup_thermal_settings
+    > "\$FROZEN_THERMAL_PIDS"
+    > "\$FROZEN_THERMAL_PKGS"
+    BLOCKED_COUNT=0
+
+    for pkg in \$THROTTLE_PACKAGES; do
+        if pm path "\$pkg" >/dev/null 2>&1; then
+            cmd appops set "\$pkg" RUN_IN_BACKGROUND ignore 2>/dev/null
+            echo "\$pkg" >> "\$FROZEN_THERMAL_PKGS"
+            PIDS=\$(pidof "\$pkg" 2>/dev/null)
+            if [ -n "\$PIDS" ]; then
+                for PID in \$PIDS; do
+                    if [ "\$PID" -gt 500 ] && [ -d "/proc/\$PID" ]; then
+                        kill -STOP "\$PID" 2>/dev/null
+                        echo "\$PID" >> "\$FROZEN_THERMAL_PIDS"
+                    fi
+                done
+            fi
+            BLOCKED_COUNT=\$((BLOCKED_COUNT + 1))
+        fi
+    done
+
+    for s_daemon in mi_thermald thermal-engine; do
+        stop "\$s_daemon" 2>/dev/null
+    done
+
+    # MediaTek GED & FPSGO Tuning
+    [ -w /sys/module/ged/parameters/dvfs_margin_value ] && echo 50 > /sys/module/ged/parameters/dvfs_margin_value 2>/dev/null
+    [ -w /sys/module/ged/parameters/gpu_idle ] && echo 0 > /sys/module/ged/parameters/gpu_idle 2>/dev/null
+    [ -w /sys/kernel/fpsgo/fbt/boost_ta ] && echo 1 > /sys/kernel/fpsgo/fbt/boost_ta 2>/dev/null
+    [ -w /sys/module/mtk_fpsgo/parameters/fstb_soft_level ] && echo 0 > /sys/module/mtk_fpsgo/parameters/fstb_soft_level 2>/dev/null
+
+    setprop debug.thermal.throttle 0 2>/dev/null
+    setprop debug.thermal.limit 0 2>/dev/null
+
+    cat <<EOF > "\$STATUS_FILE"
+STATUS=1
+BLOCKED_COUNT=\$BLOCKED_COUNT
+DVFS_MARGIN=50
+GPU_IDLE=0
+HARDWARE_SAFETY=ACTIVE
+TIMESTAMP=\$(date +"%Y-%m-%d %H:%M:%S")
+EOF
+    echo "SUCCESS: Escudo Anti-Throttling activo (\$BLOCKED_COUNT limitadores bloqueados)."
+}
+
+disable_thermal_shield() {
+    if [ -f "\$FROZEN_THERMAL_PIDS" ]; then
+        for PID in \$(cat "\$FROZEN_THERMAL_PIDS" 2>/dev/null); do
+            [ -d "/proc/\$PID" ] && kill -CONT "\$PID" 2>/dev/null
+        done
+        rm -f "\$FROZEN_THERMAL_PIDS" 2>/dev/null
+    fi
+    if [ -f "\$FROZEN_THERMAL_PKGS" ]; then
+        for pkg in \$(cat "\$FROZEN_THERMAL_PKGS" 2>/dev/null); do
+            cmd appops set "\$pkg" RUN_IN_BACKGROUND allow 2>/dev/null
+        done
+        rm -f "\$FROZEN_THERMAL_PKGS" 2>/dev/null
+    fi
+    if [ -f "\$BACKUP_STATE" ]; then
+        . "\$BACKUP_STATE"
+        [ -w /sys/module/ged/parameters/dvfs_margin_value ] && echo "\${ORIG_DVFS_MARGIN:-10}" > /sys/module/ged/parameters/dvfs_margin_value 2>/dev/null
+        [ -w /sys/module/ged/parameters/gpu_idle ] && echo "\${ORIG_GPU_IDLE:-1}" > /sys/module/ged/parameters/gpu_idle 2>/dev/null
+        rm -f "\$BACKUP_STATE" 2>/dev/null
+    fi
+    rm -f "\$STATUS_FILE" 2>/dev/null
+    echo "SUCCESS: Thermal Shield desactivado. Parámetros de fábrica restaurados."
+}
+
+audit_thermal() {
+    echo "=== AUDITORÍA THERMAL SHIELD ==="
+    S="Inactivo"
+    [ -f "\$STATUS_FILE" ] && S="Activo (Limitadores de fabricante neutralizados)"
+    echo "Estado: \$S"
+    echo "Hardware Safety Shutdown: SIEMPRE ACTIVO (Kernel level)"
+}
+
+get_status() {
+    STATUS="0"
+    [ -f "\$STATUS_FILE" ] && STATUS="1"
+    echo "THERMAL_SHIELD_STATUS=\$STATUS"
+}
+
+ACTION="\${1:-status}"
+case "\$ACTION" in
+    enable|1|on|shield) enable_thermal_shield ;;
+    disable|0|off|restore) disable_thermal_shield ;;
+    audit|check) audit_thermal ;;
+    status) get_status ;;
+    *) echo "Uso: \$0 {enable|disable|audit|status}"; exit 1 ;;
+esac
+`,
+      { unixPermissions: '755' }
+    );
   }
 
   // 7. Carpeta webroot/ (con el nuevo apartado Ultra FPS y scripts)
@@ -1607,7 +1927,7 @@ export async function downloadModuleZip(): Promise<void> {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'ax_mali_core_optimizer_v1.3.0.zip';
+  a.download = 'ax_mali_core_optimizer_v1.4.0.zip';
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);

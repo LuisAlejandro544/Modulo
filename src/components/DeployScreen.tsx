@@ -107,8 +107,8 @@ export const DeployScreen: React.FC = () => {
         </h3>
 
         <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 font-mono text-xs text-slate-300 leading-relaxed overflow-x-auto">
-          <div>ax_mali_core_optimizer_v1.3.0.zip</div>
-          <div className="text-slate-400 pl-4">├── <span className="text-cyan-400 font-bold">module.prop</span> <span className="text-slate-600">// Línea 1 id= limpia (v1.3.0, axeronPlugin=30000)</span></div>
+          <div>ax_mali_core_optimizer_v1.4.0.zip</div>
+          <div className="text-slate-400 pl-4">├── <span className="text-cyan-400 font-bold">module.prop</span> <span className="text-slate-600">// Línea 1 id= limpia (v1.4.0, axeronPlugin=30000)</span></div>
           <div className="text-slate-400 pl-4">├── <span className="text-cyan-400 font-bold">customize.sh</span> <span className="text-slate-600">// Instalador y permisos 0755</span></div>
           <div className="text-slate-400 pl-4">├── <span className="text-cyan-400 font-bold">service.sh</span> <span className="text-slate-600">// Auto-arranque de Ultra FPS por defecto</span></div>
           <div className="text-slate-400 pl-4">├── <span className="text-cyan-400 font-bold">uninstall.sh</span> <span className="text-slate-600">// Reversión completa de ajustes</span></div>
@@ -116,14 +116,19 @@ export const DeployScreen: React.FC = () => {
           <div className="text-slate-400 pl-8">├── <span className="text-emerald-400 font-bold">update-binary</span> <span className="text-slate-600">// Puente universal KernelSU / Magisk / APatch</span></div>
           <div className="text-slate-400 pl-8">└── <span className="text-emerald-400 font-bold">updater-script</span> <span className="text-slate-600">// Descriptor #MAGISK</span></div>
           <div className="text-slate-400 pl-4">├── scripts/</div>
-          <div className="text-slate-400 pl-8">├── <span className="text-emerald-400 font-bold">fps_boost.sh</span> <span className="text-slate-600">// Latch Unsignaled, Core Affinity, Disable Blur & RAM</span></div>
+          <div className="text-slate-400 pl-8">├── <span className="text-emerald-400 font-bold">fps_boost.sh</span> <span className="text-slate-600">// Latch Unsignaled, SCHED_FIFO 99 RenderThread, HWUI & RAM</span></div>
+          <div className="text-slate-400 pl-8">├── <span className="text-amber-400 font-bold">io_aot_tweak.sh</span> <span className="text-slate-600">// Pre-Compilación AOT speed mode, Readahead 1024KB & iostats=0</span></div>
+          <div className="text-slate-400 pl-8">├── <span className="text-rose-400 font-bold">thermal_tweak.sh</span> <span className="text-slate-600">// Bypass Joyose/GOS & MediaTek GED Margin Tuning</span></div>
           <div className="text-slate-400 pl-8">├── <span className="text-emerald-400 font-bold">touch_boost.sh</span> <span className="text-slate-600">// Touch Slop 1px & Zero Backpressure</span></div>
+          <div className="text-slate-400 pl-8">├── <span className="text-cyan-300">ram_tweak.sh</span> <span className="text-slate-600">// Swappiness 50, Zero Stuttering</span></div>
+          <div className="text-slate-400 pl-8">├── <span className="text-cyan-300">governor_tweak.sh</span> <span className="text-slate-600">// Piso de frecuencia GPU (Floor Freq)</span></div>
+          <div className="text-slate-400 pl-8">├── <span className="text-cyan-300">angle_tweak.sh</span> <span className="text-slate-600">// ANGLE OpenGL sobre Vulkan</span></div>
+          <div className="text-slate-400 pl-8">├── <span className="text-cyan-300">gms_shield.sh</span> <span className="text-slate-600">// Supresión de telemetría GMS</span></div>
+          <div className="text-slate-400 pl-8">├── <span className="text-cyan-300">surface_tweak.sh</span> <span className="text-slate-600">// Modo Batata (25%, 50%, 70%)</span></div>
           <div className="text-slate-400 pl-8">├── <span className="text-cyan-300">mali_common.sh</span> <span className="text-slate-600">// Detección 32/64 bits y GPU Mali</span></div>
-          <div className="text-slate-400 pl-8">├── <span className="text-cyan-300">detect_gpu.sh</span> <span className="text-slate-600">// Diagnóstico en tiempo real</span></div>
-          <div className="text-slate-400 pl-8">├── <span className="text-cyan-300">governor_tweak.sh</span> <span className="text-slate-600">// Control de frecuencias DVFS</span></div>
-          <div className="text-slate-400 pl-8">└── <span className="text-cyan-300">surface_tweak.sh</span> <span className="text-slate-600">// Modo Batata (25%, 50%, 70%) & Anulación Game Booster</span></div>
+          <div className="text-slate-400 pl-8">└── <span className="text-cyan-300">detect_gpu.sh</span> <span className="text-slate-600">// Diagnóstico en tiempo real</span></div>
           <div className="text-slate-400 pl-4">└── webroot/</div>
-          <div className="text-slate-400 pl-8">└── <span className="text-amber-300 font-bold">index.html</span> <span className="text-slate-600">// WebUI nativo con pestañas Ultra FPS, Táctil y Batata</span></div>
+          <div className="text-slate-400 pl-8">└── <span className="text-amber-300 font-bold">index.html</span> <span className="text-slate-600">// WebUI nativo con pestañas Ultra FPS, I/O AOT, Thermal Shield, Táctil y Batata</span></div>
         </div>
       </div>
 
